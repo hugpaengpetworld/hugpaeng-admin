@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HUGPAENG HOTEL ADMIN</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;padding:18px;font-family:Arial,sans-serif;background:linear-gradient(180deg,#063f2d,#0b5a3f);color:#063f2d}
+.wrap{max-width:720px;margin:auto}
+.card{background:#fff8ea;border-radius:28px;padding:22px;box-shadow:0 10px 30px rgba(0,0,0,.2)}
+h1{text-align:center;margin:0;color:#063f2d}
+.sub{text-align:center;color:#d9931f;font-weight:bold;margin:8px 0 18px}
+input{width:100%;padding:14px;border-radius:14px;border:1px solid #ddd;font-size:16px;margin-top:8px}
+button{width:100%;padding:12px;border:0;border-radius:12px;margin-top:10px;background:#d9931f;color:white;font-size:15px;font-weight:bold}
+.loading,.error,.success{padding:14px;border-radius:14px;margin-top:14px;text-align:center;font-weight:bold}
+.loading{background:#eef7f2;color:#063f2d}
+.error{background:#ffe5e5;color:#b00020}
+.success{background:#e8fff0;color:#067a35}
+.booking{background:white;border-radius:20px;padding:16px;margin-top:14px;border:1px solid #f0dfbd}
+.row{margin:5px 0}
+.badge{display:inline-block;padding:6px 12px;border-radius:999px;background:#063f2d;color:white;font-weight:bold;font-size:13px}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.btn-green{background:#0b5a3f}
+.btn-red{background:#b00020}
+.btn-gray{background:#666}
+</style>
+</head>
+
+<body>
+<div class="wrap">
+  <div class="card">
+    <h1>🔐 HUGPAENG HOTEL ADMIN</h1>
+    <div class="sub">จัดการรายการจอง Pet Hotel</div>
+    <div id="app"></div>
+  </div>
+</div>
+
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbzI4JBgyC74yfJoRhGh068wmxFo6abwmly9IqngiN0_FnXCMTKmVCAodaLdfHq1WufUJQ/exec";
+let adminPassword = "";
+
+function app(html){ document.getElementById("app").innerHTML = html; }
+
+function jsonp(url){
+  return new Promise((resolve,reject)=>{
+    const cb = "cb_" + Date.now() + "_" + Math.floor(Math.random()*99999);
+    const script = document.createElement("script");
+    let finished = false;
+
+    window[cb] = data => {
+      finished = true;
+      delete window[cb];
+      if(script.parentNode) document.body.removeChild(script);
+      resolve(data);
+    };
+
+    script.onerror = () => {
+      if(finished) return;
+      finished = true;
+      reject(new Error("เชื่อมต่อ API ไม่สำเร็จ"));
+    };
+
+    script.src = url + "&callback=" + cb + "&t=" + Date.now();
+    document.body.appendChild(script);
+
+    setTimeout(()=>{
+      if(!finished){
+        finished = true;
+        delete window[cb];
+        if(script.parentNode) document.body.removeChild(script);
+        reject(new Error("API ตอบกลับช้าเกินไป"));
+      }
+    },15000);
+  });
+}
+
+function buildUrl(params){
+  const q = [];
+  for(let key in params){
+    q.push(encodeURIComponent(key) + "=" + encodeURIComponent(params[key] || ""));
+  }
+  return API_URL + "?" + q.join("&");
+}
+
+function showLogin(){
+  app(`
+    <div class="loading">กรุณาใส่รหัสผ่านแอดมิน</div>
+    <input id="password" type="password" placeholder="Admin Password">
+    <button onclick="login()">เข้าสู่ระบบ</button>
+  `);
+}
+
+function login(){
+  adminPassword = document.getElementById("password").value.trim();
+  if(!adminPassword){
+    app(`<div class="error">กรุณาใส่รหัสผ่าน</div>`);
+    setTimeout(showLogin,1000);
+    return;
+  }
+  loadBookings();
+}
+
+async function loadBookings(){
+  app(`<div class="loading">กำลังโหลดรายการจอง...</div>`);
+
+  try{
+    const data = await jsonp(buildUrl({
+      action:"adminGetHotelBookings",
+      password:adminPassword
+    }));
+
+    if(!data.success){
+      app(`<div class="error">${data.error}</div><button onclick="showLogin()">กลับไปใส่รหัสผ่าน</button>`);
+      return;
+    }
+
+    showBookings(data.bookings || []);
+
+  }catch(err){
+    app(`<div class="error">${err.message}</div>`);
+  }
+}
+
+function statusIcon(code){
+  if(code === "CONFIRMED") return "🟢";
+  if(code === "CANCELLED") return "🔴";
+  if(code === "CHECKIN") return "🏨";
+  if(code === "CHECKOUT") return "✅";
+  return "🟡";
+}
+
+function showBookings(bookings){
+  let html = `
+    <button onclick="loadBookings()" class="btn-green">รีเฟรชรายการจอง</button>
+    <div class="success">พบรายการจอง ${bookings.length} รายการ</div>
+  `;
+
+  if(bookings.length === 0){
+    html += `<div class="error">ยังไม่มีรายการจอง</div>`;
+    app(html);
+    return;
+  }
+
+  bookings.forEach(b=>{
+    html += `
+      <div class="booking">
+        <div><span class="badge">${statusIcon(b.statusCode)} ${b.status}</span></div>
+        <h3>${b.bookingId}</h3>
+        <div class="row"><b>ผู้จอง:</b> ${b.customerName}</div>
+        <div class="row"><b>โทร:</b> ${b.phone}</div>
+        <div class="row"><b>สัตว์เลี้ยง:</b> ${b.petName}</div>
+        <div class="row"><b>ห้อง:</b> ${b.roomType}</div>
+        <div class="row"><b>เข้าพัก:</b> ${b.checkIn}</div>
+        <div class="row"><b>รับกลับ:</b> ${b.checkOut}</div>
+        <div class="row"><b>จำนวนคืน:</b> ${b.nights}</div>
+        <div class="row"><b>รวม:</b> ${b.totalPrice} บาท</div>
+        <div class="row"><b>หมายเหตุ:</b> ${b.note || "-"}</div>
+
+        <div class="actions">
+          <button class="btn-green" onclick="updateStatus('${b.bookingId}','CONFIRMED')">ยืนยัน</button>
+          <button onclick="updateStatus('${b.bookingId}','CHECKIN')">Check-in</button>
+          <button class="btn-gray" onclick="updateStatus('${b.bookingId}','CHECKOUT')">Check-out</button>
+          <button class="btn-red" onclick="updateStatus('${b.bookingId}','CANCELLED')">ยกเลิก</button>
+        </div>
+      </div>
+    `;
+  });
+
+  app(html);
+}
+
+async function updateStatus(bookingId,statusCode){
+  const confirmText = {
+    CONFIRMED:"ยืนยันการจอง",
+    CHECKIN:"เปลี่ยนเป็นเข้าพักอยู่",
+    CHECKOUT:"เปลี่ยนเป็นรับกลับแล้ว",
+    CANCELLED:"ยกเลิกการจอง"
+  };
+
+  if(!confirm(confirmText[statusCode] + " : " + bookingId + " ?")) return;
+
+  app(`<div class="loading">กำลังอัปเดตสถานะ...</div>`);
+
+  try{
+    const data = await jsonp(buildUrl({
+      action:"adminUpdateBookingStatus",
+      password:adminPassword,
+      bookingId:bookingId,
+      statusCode:statusCode
+    }));
+
+    if(data.success){
+      await loadBookings();
+    }else{
+      app(`<div class="error">${data.error}</div><button onclick="loadBookings()">กลับไปหน้ารายการ</button>`);
+    }
+
+  }catch(err){
+    app(`<div class="error">${err.message}</div>`);
+  }
+}
+
+showLogin();
+</script>
+</body>
+</html>
