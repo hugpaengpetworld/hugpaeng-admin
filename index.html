@@ -3,42 +3,56 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>HUGPAENG HOTEL ADMIN</title>
+<title>HUGPAENG ADMIN V2</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;padding:18px;font-family:Arial,sans-serif;background:linear-gradient(180deg,#063f2d,#0b5a3f);color:#063f2d}
-.wrap{max-width:720px;margin:auto}
-.card{background:#fff8ea;border-radius:28px;padding:22px;box-shadow:0 10px 30px rgba(0,0,0,.2)}
+.wrap{max-width:960px;margin:auto}
+.card{background:#fff8ea;border-radius:28px;padding:22px;box-shadow:0 10px 30px rgba(0,0,0,.22)}
 h1{text-align:center;margin:0;color:#063f2d}
 .sub{text-align:center;color:#d9931f;font-weight:bold;margin:8px 0 18px}
-input{width:100%;padding:14px;border-radius:14px;border:1px solid #ddd;font-size:16px;margin-top:8px}
+input,select{width:100%;padding:13px;border-radius:14px;border:1px solid #ddd;font-size:16px;margin-top:8px}
 button{width:100%;padding:12px;border:0;border-radius:12px;margin-top:10px;background:#d9931f;color:white;font-size:15px;font-weight:bold}
 .loading,.error,.success{padding:14px;border-radius:14px;margin-top:14px;text-align:center;font-weight:bold}
 .loading{background:#eef7f2;color:#063f2d}
 .error{background:#ffe5e5;color:#b00020}
 .success{background:#e8fff0;color:#067a35}
-.booking{background:white;border-radius:20px;padding:16px;margin-top:14px;border:1px solid #f0dfbd}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.stat{background:white;border-radius:18px;padding:14px;text-align:center;border:1px solid #f0dfbd}
+.stat b{font-size:24px;color:#d9931f}
+.tabbar{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+.tabbar button{background:#0b5a3f}
+.item{background:white;border-radius:20px;padding:16px;margin-top:14px;border:1px solid #f0dfbd}
 .row{margin:5px 0}
 .badge{display:inline-block;padding:6px 12px;border-radius:999px;background:#063f2d;color:white;font-weight:bold;font-size:13px}
 .actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
 .btn-green{background:#0b5a3f}
 .btn-red{background:#b00020}
 .btn-gray{background:#666}
+.btn-gold{background:#d9931f}
+.hidden{display:none}
+@media(max-width:640px){.grid,.tabbar,.actions{grid-template-columns:1fr}}
 </style>
 </head>
 
 <body>
 <div class="wrap">
   <div class="card">
-    <h1>🔐 HUGPAENG HOTEL ADMIN</h1>
-    <div class="sub">จัดการรายการจอง Pet Hotel</div>
+    <h1>🔐 HUGPAENG ADMIN</h1>
+    <div class="sub">Hotel • Products • POS</div>
     <div id="app"></div>
   </div>
 </div>
 
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbzI4JBgyC74yfJoRhGh068wmxFo6abwmly9IqngiN0_FnXCMTKmVCAodaLdfHq1WufUJQ/exec";
-let adminPassword = "";
+
+let currentUser = null;
+let loginUsername = "";
+let loginPassword = "";
+let bookings = [];
+let products = [];
+let currentTab = "hotel";
 
 function app(html){ document.getElementById("app").innerHTML = html; }
 
@@ -83,43 +97,138 @@ function buildUrl(params){
   return API_URL + "?" + q.join("&");
 }
 
-function showLogin(){
-  app(`
-    <div class="loading">กรุณาใส่รหัสผ่านแอดมิน</div>
-    <input id="password" type="password" placeholder="Admin Password">
-    <button onclick="login()">เข้าสู่ระบบ</button>
-  `);
+function authParams(extra){
+  return Object.assign({
+    username:loginUsername,
+    password:loginPassword
+  }, extra || {});
 }
 
-function login(){
-  adminPassword = document.getElementById("password").value.trim();
-  if(!adminPassword){
-    app(`<div class="error">กรุณาใส่รหัสผ่าน</div>`);
+function showLogin(){
+  app(`
+    <div class="loading">เข้าสู่ระบบผู้ดูแล</div>
+    <input id="username" placeholder="Username">
+    <input id="password" type="password" placeholder="Password">
+    <button onclick="login()">เข้าสู่ระบบ</button>
+  `);
+
+  setTimeout(()=>{
+    document.getElementById("username").addEventListener("keydown", enterLogin);
+    document.getElementById("password").addEventListener("keydown", enterLogin);
+  },100);
+}
+
+function enterLogin(e){
+  if(e.key === "Enter") login();
+}
+
+async function login(){
+  loginUsername = document.getElementById("username").value.trim();
+  loginPassword = document.getElementById("password").value.trim();
+
+  if(!loginUsername || !loginPassword){
+    app(`<div class="error">กรุณากรอก Username และ Password</div>`);
     setTimeout(showLogin,1000);
     return;
   }
-  loadBookings();
-}
 
-async function loadBookings(){
-  app(`<div class="loading">กำลังโหลดรายการจอง...</div>`);
+  app(`<div class="loading">กำลังเข้าสู่ระบบ...</div>`);
 
   try{
     const data = await jsonp(buildUrl({
-      action:"adminGetHotelBookings",
-      password:adminPassword
+      action:"adminLogin",
+      username:loginUsername,
+      password:loginPassword
     }));
 
     if(!data.success){
-      app(`<div class="error">${data.error}</div><button onclick="showLogin()">กลับไปใส่รหัสผ่าน</button>`);
+      app(`<div class="error">${data.error}</div><button onclick="showLogin()">ลองใหม่</button>`);
       return;
     }
 
-    showBookings(data.bookings || []);
+    currentUser = data.user;
+    loadDashboard();
 
   }catch(err){
     app(`<div class="error">${err.message}</div>`);
   }
+}
+
+async function loadDashboard(){
+  app(`<div class="loading">กำลังโหลด Dashboard...</div>`);
+
+  try{
+    const hotelData = await jsonp(buildUrl(authParams({ action:"adminGetHotelBookings" })));
+    const productData = await jsonp(buildUrl(authParams({ action:"getProducts" })));
+
+    if(!hotelData.success) throw new Error(hotelData.error);
+    if(!productData.success) throw new Error(productData.error);
+
+    bookings = hotelData.bookings || [];
+    products = productData.products || [];
+
+    renderDashboard();
+
+  }catch(err){
+    app(`<div class="error">${err.message}</div>`);
+  }
+}
+
+function renderDashboard(){
+  const pending = bookings.filter(b=>b.statusCode==="PENDING").length;
+  const confirmed = bookings.filter(b=>b.statusCode==="CONFIRMED").length;
+  const checkin = bookings.filter(b=>b.statusCode==="CHECKIN").length;
+  const history = bookings.filter(b=>b.statusCode==="CANCELLED" || b.statusCode==="CHECKOUT").length;
+  const revenue = bookings
+    .filter(b=>b.statusCode!=="CANCELLED")
+    .reduce((sum,b)=>sum+(Number(String(b.totalPrice).replace(/,/g,''))||0),0);
+
+  let html = `
+    <div class="success">
+      👤 ${currentUser.name} | ${currentUser.role}
+    </div>
+
+    <div class="grid">
+      <div class="stat">🟡<br>รอยืนยัน<br><b>${pending}</b></div>
+      <div class="stat">🟢<br>จองสำเร็จ<br><b>${confirmed}</b></div>
+      <div class="stat">🏨<br>เข้าพักอยู่<br><b>${checkin}</b></div>
+      <div class="stat">💰<br>รายได้รวม<br><b>${revenue}</b></div>
+    </div>
+
+    <div class="tabbar">
+      <button onclick="switchTab('hotel')">🏨 โรงแรม</button>
+      <button onclick="switchTab('products')">📦 สินค้า</button>
+      <button onclick="switchTab('pos')">🛒 POS</button>
+    </div>
+  `;
+
+  if(currentUser.role === "OWNER"){
+    html += `
+      <div class="tabbar">
+        <button onclick="switchTab('admins')">👥 ผู้ดูแล</button>
+        <button onclick="switchTab('settings')">⚙️ ตั้งค่า</button>
+        <button onclick="switchTab('reports')">📊 รายงาน</button>
+      </div>
+    `;
+  }
+
+  html += `<div id="content"></div>`;
+  app(html);
+  renderTab();
+}
+
+function switchTab(tab){
+  currentTab = tab;
+  renderTab();
+}
+
+function renderTab(){
+  if(currentTab === "hotel") renderHotel();
+  if(currentTab === "products") renderProducts();
+  if(currentTab === "pos") renderPOS();
+  if(currentTab === "admins") renderAdmins();
+  if(currentTab === "settings") renderSettings();
+  if(currentTab === "reports") renderReports();
 }
 
 function statusIcon(code){
@@ -130,44 +239,61 @@ function statusIcon(code){
   return "🟡";
 }
 
-function showBookings(bookings){
+function renderHotel(){
+  const pending = bookings.filter(b=>b.statusCode==="PENDING");
+  const active = bookings.filter(b=>b.statusCode==="CONFIRMED" || b.statusCode==="CHECKIN");
+  const history = bookings.filter(b=>b.statusCode==="CANCELLED" || b.statusCode==="CHECKOUT");
+
   let html = `
-    <button onclick="loadBookings()" class="btn-green">รีเฟรชรายการจอง</button>
-    <div class="success">พบรายการจอง ${bookings.length} รายการ</div>
+    <button onclick="loadDashboard()" class="btn-green">รีเฟรช</button>
+    <div class="success">🏨 รายการจองโรงแรม</div>
   `;
 
-  if(bookings.length === 0){
-    html += `<div class="error">ยังไม่มีรายการจอง</div>`;
-    app(html);
-    return;
-  }
+  html += `<div class="loading">🟡 รอยืนยัน (${pending.length})</div>`;
+  pending.forEach(b=>html += bookingCard(b));
 
-  bookings.forEach(b=>{
-    html += `
-      <div class="booking">
-        <div><span class="badge">${statusIcon(b.statusCode)} ${b.status}</span></div>
-        <h3>${b.bookingId}</h3>
-        <div class="row"><b>ผู้จอง:</b> ${b.customerName}</div>
-        <div class="row"><b>โทร:</b> ${b.phone}</div>
-        <div class="row"><b>สัตว์เลี้ยง:</b> ${b.petName}</div>
-        <div class="row"><b>ห้อง:</b> ${b.roomType}</div>
-        <div class="row"><b>เข้าพัก:</b> ${b.checkIn}</div>
-        <div class="row"><b>รับกลับ:</b> ${b.checkOut}</div>
-        <div class="row"><b>จำนวนคืน:</b> ${b.nights}</div>
-        <div class="row"><b>รวม:</b> ${b.totalPrice} บาท</div>
-        <div class="row"><b>หมายเหตุ:</b> ${b.note || "-"}</div>
+  html += `<div class="loading">🏨 กำลังดำเนินการ (${active.length})</div>`;
+  active.forEach(b=>html += bookingCard(b));
 
+  html += `<button onclick="toggleHistory()" class="btn-gold">📚 ดู/ซ่อนประวัติ (${history.length})</button>`;
+  html += `<div id="historyBox" class="hidden">`;
+  history.forEach(b=>html += bookingCard(b));
+  html += `</div>`;
+
+  document.getElementById("content").innerHTML = html;
+}
+
+function toggleHistory(){
+  const box = document.getElementById("historyBox");
+  box.classList.toggle("hidden");
+}
+
+function bookingCard(b){
+  const isHistory = b.statusCode==="CANCELLED" || b.statusCode==="CHECKOUT";
+
+  return `
+    <div class="item">
+      <span class="badge">${statusIcon(b.statusCode)} ${b.status}</span>
+      <h3>${b.bookingId}</h3>
+      <div class="row"><b>ผู้จอง:</b> ${b.customerName}</div>
+      <div class="row"><b>โทร:</b> ${b.phone}</div>
+      <div class="row"><b>สัตว์เลี้ยง:</b> ${b.petName}</div>
+      <div class="row"><b>ห้อง:</b> ${b.roomType}</div>
+      <div class="row"><b>เข้าพัก:</b> ${b.checkIn}</div>
+      <div class="row"><b>รับกลับ:</b> ${b.checkOut}</div>
+      <div class="row"><b>รวม:</b> ${b.totalPrice} บาท</div>
+      <div class="row"><b>หมายเหตุ:</b> ${b.note || "-"}</div>
+
+      ${isHistory ? "" : `
         <div class="actions">
           <button class="btn-green" onclick="updateStatus('${b.bookingId}','CONFIRMED')">ยืนยัน</button>
           <button onclick="updateStatus('${b.bookingId}','CHECKIN')">Check-in</button>
           <button class="btn-gray" onclick="updateStatus('${b.bookingId}','CHECKOUT')">Check-out</button>
           <button class="btn-red" onclick="updateStatus('${b.bookingId}','CANCELLED')">ยกเลิก</button>
         </div>
-      </div>
-    `;
-  });
-
-  app(html);
+      `}
+    </div>
+  `;
 }
 
 async function updateStatus(bookingId,statusCode){
@@ -183,22 +309,153 @@ async function updateStatus(bookingId,statusCode){
   app(`<div class="loading">กำลังอัปเดตสถานะ...</div>`);
 
   try{
-    const data = await jsonp(buildUrl({
+    const data = await jsonp(buildUrl(authParams({
       action:"adminUpdateBookingStatus",
-      password:adminPassword,
       bookingId:bookingId,
       statusCode:statusCode
-    }));
+    })));
 
     if(data.success){
-      await loadBookings();
+      await loadDashboard();
     }else{
-      app(`<div class="error">${data.error}</div><button onclick="loadBookings()">กลับไปหน้ารายการ</button>`);
+      app(`<div class="error">${data.error}</div><button onclick="loadDashboard()">กลับไป Dashboard</button>`);
     }
 
   }catch(err){
     app(`<div class="error">${err.message}</div>`);
   }
+}
+
+function renderProducts(){
+  let html = `
+    <div class="success">📦 จัดการสินค้า</div>
+
+    <input id="barcode" placeholder="Barcode">
+    <input id="productName" placeholder="Product Name">
+    <input id="category" placeholder="Category">
+    <input id="cost" type="number" placeholder="Cost">
+    <input id="price" type="number" placeholder="Price">
+    <input id="stock" type="number" placeholder="Stock">
+
+    <button onclick="addProduct()">เพิ่มสินค้า</button>
+  `;
+
+  products.forEach(p=>{
+    html += `
+      <div class="item">
+        <span class="badge">${p.active}</span>
+        <h3>${p.productName}</h3>
+        <div class="row"><b>Barcode:</b> ${p.barcode}</div>
+        <div class="row"><b>Category:</b> ${p.category}</div>
+        <div class="row"><b>Cost:</b> ${p.cost}</div>
+        <div class="row"><b>Price:</b> ${p.price}</div>
+        <div class="row"><b>Stock:</b> ${p.stock}</div>
+        ${
+          currentUser.role === "OWNER"
+          ? `<button class="btn-red" onclick="deactivateProduct('${p.barcode}')">ปิดการใช้งานสินค้า</button>`
+          : ``
+        }
+      </div>
+    `;
+  });
+
+  document.getElementById("content").innerHTML = html;
+
+  ["barcode","productName","category","cost","price","stock"].forEach(id=>{
+    setTimeout(()=>{
+      const el = document.getElementById(id);
+      if(el) el.addEventListener("keydown", e=>{ if(e.key==="Enter") addProduct(); });
+    },100);
+  });
+}
+
+async function addProduct(){
+  const data = {
+    action:"addProduct",
+    barcode:document.getElementById("barcode").value.trim(),
+    productName:document.getElementById("productName").value.trim(),
+    category:document.getElementById("category").value.trim(),
+    cost:document.getElementById("cost").value.trim(),
+    price:document.getElementById("price").value.trim(),
+    stock:document.getElementById("stock").value.trim()
+  };
+
+  try{
+    const res = await jsonp(buildUrl(authParams(data)));
+    if(!res.success) alert(res.error);
+    await loadDashboard();
+    currentTab = "products";
+    renderDashboard();
+  }catch(err){
+    alert(err.message);
+  }
+}
+
+async function deactivateProduct(barcode){
+  if(!confirm("ปิดการใช้งานสินค้า Barcode: " + barcode + " ?")) return;
+
+  try{
+    const res = await jsonp(buildUrl(authParams({
+      action:"deactivateProduct",
+      barcode:barcode
+    })));
+
+    if(!res.success) alert(res.error);
+    await loadDashboard();
+    currentTab = "products";
+    renderDashboard();
+  }catch(err){
+    alert(err.message);
+  }
+}
+
+function renderPOS(){
+  document.getElementById("content").innerHTML = `
+    <div class="success">🛒 POS</div>
+    <div class="item">
+      ระบบ POS จะเชื่อมต่อขั้นถัดไป<br>
+      รองรับการยิง Barcode / คิดเงิน / พิมพ์ใบเสร็จ
+    </div>
+  `;
+}
+
+async function renderAdmins(){
+  if(currentUser.role !== "OWNER"){
+    document.getElementById("content").innerHTML = `<div class="error">ไม่มีสิทธิ์เข้าถึงเมนูนี้</div>`;
+    return;
+  }
+
+  try{
+    const data = await jsonp(buildUrl(authParams({ action:"getAdminUsers" })));
+    if(!data.success) throw new Error(data.error);
+
+    let html = `<div class="success">👥 ผู้ดูแลระบบ</div>`;
+
+    data.admins.forEach(a=>{
+      html += `
+        <div class="item">
+          <h3>${a.name}</h3>
+          <div class="row"><b>Username:</b> ${a.username}</div>
+          <div class="row"><b>Role:</b> ${a.role}</div>
+          <div class="row"><b>Active:</b> ${a.active}</div>
+          <div class="row"><b>Last Login:</b> ${a.lastLogin || "-"}</div>
+        </div>
+      `;
+    });
+
+    document.getElementById("content").innerHTML = html;
+
+  }catch(err){
+    document.getElementById("content").innerHTML = `<div class="error">${err.message}</div>`;
+  }
+}
+
+function renderSettings(){
+  document.getElementById("content").innerHTML = `<div class="success">⚙️ ตั้งค่า ระบบจะเพิ่มใน Phase ถัดไป</div>`;
+}
+
+function renderReports(){
+  document.getElementById("content").innerHTML = `<div class="success">📊 รายงาน ระบบจะเพิ่มใน Phase ถัดไป</div>`;
 }
 
 showLogin();
