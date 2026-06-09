@@ -31,6 +31,7 @@ button{width:100%;padding:12px;border:0;border-radius:12px;margin-top:10px;backg
 .btn-gray{background:#666}
 .btn-gold{background:#d9931f}
 .hidden{display:none}
+.logoutBox{display:grid;grid-template-columns:1fr;gap:8px}
 @media(max-width:640px){.grid,.tabbar,.actions{grid-template-columns:1fr}}
 </style>
 </head>
@@ -53,6 +54,9 @@ let loginPassword = "";
 let bookings = [];
 let products = [];
 let currentTab = "hotel";
+
+let sessionTimer = null;
+const SESSION_TIMEOUT = 30 * 60 * 1000;
 
 function app(html){ document.getElementById("app").innerHTML = html; }
 
@@ -105,6 +109,7 @@ function authParams(extra){
 }
 
 function showLogin(){
+  clearTimeout(sessionTimer);
   app(`
     <div class="loading">เข้าสู่ระบบผู้ดูแล</div>
     <input id="username" placeholder="Username">
@@ -113,13 +118,50 @@ function showLogin(){
   `);
 
   setTimeout(()=>{
-    document.getElementById("username").addEventListener("keydown", enterLogin);
-    document.getElementById("password").addEventListener("keydown", enterLogin);
+    const u = document.getElementById("username");
+    const p = document.getElementById("password");
+    if(u) u.addEventListener("keydown", enterLogin);
+    if(p) p.addEventListener("keydown", enterLogin);
   },100);
 }
 
 function enterLogin(e){
   if(e.key === "Enter") login();
+}
+
+async function autoLogin(){
+  const savedUsername = localStorage.getItem("admin_username");
+  const savedPassword = localStorage.getItem("admin_password");
+
+  if(!savedUsername || !savedPassword){
+    showLogin();
+    return;
+  }
+
+  loginUsername = savedUsername;
+  loginPassword = savedPassword;
+
+  app(`<div class="loading">กำลังเข้าสู่ระบบอัตโนมัติ...</div>`);
+
+  try{
+    const data = await jsonp(buildUrl({
+      action:"adminLogin",
+      username:loginUsername,
+      password:loginPassword
+    }));
+
+    if(data.success){
+      currentUser = data.user;
+      resetSessionTimer();
+      loadDashboard();
+      return;
+    }
+
+  }catch(err){}
+
+  localStorage.removeItem("admin_username");
+  localStorage.removeItem("admin_password");
+  showLogin();
 }
 
 async function login(){
@@ -147,6 +189,11 @@ async function login(){
     }
 
     currentUser = data.user;
+
+    localStorage.setItem("admin_username", loginUsername);
+    localStorage.setItem("admin_password", loginPassword);
+
+    resetSessionTimer();
     loadDashboard();
 
   }catch(err){
@@ -154,7 +201,47 @@ async function login(){
   }
 }
 
+function logout(){
+  if(!confirm("ต้องการออกจากระบบใช่หรือไม่?")) return;
+
+  localStorage.removeItem("admin_username");
+  localStorage.removeItem("admin_password");
+
+  currentUser = null;
+  loginUsername = "";
+  loginPassword = "";
+  bookings = [];
+  products = [];
+  currentTab = "hotel";
+
+  clearTimeout(sessionTimer);
+  showLogin();
+}
+
+function resetSessionTimer(){
+  if(!currentUser) return;
+
+  clearTimeout(sessionTimer);
+
+  sessionTimer = setTimeout(()=>{
+    alert("ไม่มีการใช้งานเกิน 30 นาที ระบบจะออกจากระบบอัตโนมัติ");
+
+    localStorage.removeItem("admin_username");
+    localStorage.removeItem("admin_password");
+
+    currentUser = null;
+    loginUsername = "";
+    loginPassword = "";
+    bookings = [];
+    products = [];
+    currentTab = "hotel";
+
+    showLogin();
+  }, SESSION_TIMEOUT);
+}
+
 async function loadDashboard(){
+  resetSessionTimer();
   app(`<div class="loading">กำลังโหลด Dashboard...</div>`);
 
   try{
@@ -175,17 +262,19 @@ async function loadDashboard(){
 }
 
 function renderDashboard(){
+  resetSessionTimer();
+
   const pending = bookings.filter(b=>b.statusCode==="PENDING").length;
   const confirmed = bookings.filter(b=>b.statusCode==="CONFIRMED").length;
   const checkin = bookings.filter(b=>b.statusCode==="CHECKIN").length;
-  const history = bookings.filter(b=>b.statusCode==="CANCELLED" || b.statusCode==="CHECKOUT").length;
   const revenue = bookings
     .filter(b=>b.statusCode!=="CANCELLED")
     .reduce((sum,b)=>sum+(Number(String(b.totalPrice).replace(/,/g,''))||0),0);
 
   let html = `
-    <div class="success">
-      👤 ${currentUser.name} | ${currentUser.role}
+    <div class="success logoutBox">
+      <div>👤 ${currentUser.name} | ${currentUser.role}</div>
+      <button onclick="logout()" class="btn-red">🚪 ออกจากระบบ</button>
     </div>
 
     <div class="grid">
@@ -218,11 +307,14 @@ function renderDashboard(){
 }
 
 function switchTab(tab){
+  resetSessionTimer();
   currentTab = tab;
   renderTab();
 }
 
 function renderTab(){
+  resetSessionTimer();
+
   if(currentTab === "hotel") renderHotel();
   if(currentTab === "products") renderProducts();
   if(currentTab === "pos") renderPOS();
@@ -264,6 +356,7 @@ function renderHotel(){
 }
 
 function toggleHistory(){
+  resetSessionTimer();
   const box = document.getElementById("historyBox");
   box.classList.toggle("hidden");
 }
@@ -297,6 +390,8 @@ function bookingCard(b){
 }
 
 async function updateStatus(bookingId,statusCode){
+  resetSessionTimer();
+
   const confirmText = {
     CONFIRMED:"ยืนยันการจอง",
     CHECKIN:"เปลี่ยนเป็นเข้าพักอยู่",
@@ -370,6 +465,8 @@ function renderProducts(){
 }
 
 async function addProduct(){
+  resetSessionTimer();
+
   const data = {
     action:"addProduct",
     barcode:document.getElementById("barcode").value.trim(),
@@ -392,6 +489,8 @@ async function addProduct(){
 }
 
 async function deactivateProduct(barcode){
+  resetSessionTimer();
+
   if(!confirm("ปิดการใช้งานสินค้า Barcode: " + barcode + " ?")) return;
 
   try{
@@ -420,6 +519,8 @@ function renderPOS(){
 }
 
 async function renderAdmins(){
+  resetSessionTimer();
+
   if(currentUser.role !== "OWNER"){
     document.getElementById("content").innerHTML = `<div class="error">ไม่มีสิทธิ์เข้าถึงเมนูนี้</div>`;
     return;
@@ -458,7 +559,11 @@ function renderReports(){
   document.getElementById("content").innerHTML = `<div class="success">📊 รายงาน ระบบจะเพิ่มใน Phase ถัดไป</div>`;
 }
 
-showLogin();
+document.addEventListener("click", resetSessionTimer);
+document.addEventListener("keydown", resetSessionTimer);
+document.addEventListener("touchstart", resetSessionTimer);
+
+autoLogin();
 </script>
 </body>
 </html>
