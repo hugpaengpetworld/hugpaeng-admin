@@ -18,11 +18,13 @@ button{width:100%;padding:12px;border:0;border-radius:12px;margin-top:10px;backg
 .error{background:#ffe5e5;color:#b00020}
 .success{background:#e8fff0;color:#067a35}
 .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.formgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
 .stat{background:white;border-radius:18px;padding:14px;text-align:center;border:1px solid #f0dfbd}
 .stat b{font-size:24px;color:#d9931f}
 .tabbar{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
 .tabbar button{background:#0b5a3f}
 .item{background:white;border-radius:20px;padding:16px;margin-top:14px;border:1px solid #f0dfbd}
+.unit{background:#fff8ea;border-radius:14px;padding:12px;margin-top:10px;border:1px dashed #d9931f}
 .row{margin:5px 0}
 .badge{display:inline-block;padding:6px 12px;border-radius:999px;background:#063f2d;color:white;font-weight:bold;font-size:13px}
 .actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
@@ -32,7 +34,8 @@ button{width:100%;padding:12px;border:0;border-radius:12px;margin-top:10px;backg
 .btn-gold{background:#d9931f}
 .hidden{display:none}
 .logoutBox{display:grid;grid-template-columns:1fr;gap:8px}
-@media(max-width:640px){.grid,.tabbar,.actions{grid-template-columns:1fr}}
+.small{font-size:13px;color:#666;margin-top:6px}
+@media(max-width:640px){.grid,.tabbar,.actions,.formgrid{grid-template-columns:1fr}}
 </style>
 </head>
 
@@ -40,7 +43,7 @@ button{width:100%;padding:12px;border:0;border-radius:12px;margin-top:10px;backg
 <div class="wrap">
   <div class="card">
     <h1>🔐 HUGPAENG ADMIN</h1>
-    <div class="sub">Hotel • Products • POS</div>
+    <div class="sub">Hotel • Products • UOM • POS</div>
     <div id="app"></div>
   </div>
 </div>
@@ -189,10 +192,8 @@ async function login(){
     }
 
     currentUser = data.user;
-
     localStorage.setItem("admin_username", loginUsername);
     localStorage.setItem("admin_password", loginPassword);
-
     resetSessionTimer();
     loadDashboard();
 
@@ -203,39 +204,31 @@ async function login(){
 
 function logout(){
   if(!confirm("ต้องการออกจากระบบใช่หรือไม่?")) return;
-
   localStorage.removeItem("admin_username");
   localStorage.removeItem("admin_password");
-
   currentUser = null;
   loginUsername = "";
   loginPassword = "";
   bookings = [];
   products = [];
   currentTab = "hotel";
-
   clearTimeout(sessionTimer);
   showLogin();
 }
 
 function resetSessionTimer(){
   if(!currentUser) return;
-
   clearTimeout(sessionTimer);
-
   sessionTimer = setTimeout(()=>{
     alert("ไม่มีการใช้งานเกิน 30 นาที ระบบจะออกจากระบบอัตโนมัติ");
-
     localStorage.removeItem("admin_username");
     localStorage.removeItem("admin_password");
-
     currentUser = null;
     loginUsername = "";
     loginPassword = "";
     bookings = [];
     products = [];
     currentTab = "hotel";
-
     showLogin();
   }, SESSION_TIMEOUT);
 }
@@ -253,7 +246,6 @@ async function loadDashboard(){
 
     bookings = hotelData.bookings || [];
     products = productData.products || [];
-
     renderDashboard();
 
   }catch(err){
@@ -314,7 +306,6 @@ function switchTab(tab){
 
 function renderTab(){
   resetSessionTimer();
-
   if(currentTab === "hotel") renderHotel();
   if(currentTab === "products") renderProducts();
   if(currentTab === "pos") renderPOS();
@@ -322,6 +313,8 @@ function renderTab(){
   if(currentTab === "settings") renderSettings();
   if(currentTab === "reports") renderReports();
 }
+
+/* ========== HOTEL ========== */
 
 function statusIcon(code){
   if(code === "CONFIRMED") return "🟢";
@@ -421,45 +414,128 @@ async function updateStatus(bookingId,statusCode){
   }
 }
 
+/* ========== PRODUCT MANAGEMENT V1 ========== */
+
 function renderProducts(){
   let html = `
-    <div class="success">📦 จัดการสินค้า</div>
+    <div class="success">📦 Product Management V1 / Multi-Unit UOM</div>
 
-    <input id="barcode" placeholder="Barcode">
-    <input id="productName" placeholder="Product Name">
-    <input id="category" placeholder="Category">
-    <input id="cost" type="number" placeholder="Cost">
-    <input id="price" type="number" placeholder="Price">
-    <input id="stock" type="number" placeholder="Stock">
-
-    <button onclick="addProduct()">เพิ่มสินค้า</button>
+    <div class="item">
+      <h3>➕ เพิ่มสินค้าแม่</h3>
+      <div class="formgrid">
+        <input id="productId" placeholder="ProductID เช่น CAT0001">
+        <input id="productName" placeholder="ProductName">
+        <input id="category" placeholder="Category เช่น อาหารแมว">
+        <input id="brand" placeholder="Brand เช่น Nekko">
+        <input id="baseUnit" placeholder="BaseUnit เช่น ชิ้น">
+        <input id="cost" type="number" placeholder="Cost ต้นทุน/หน่วยฐาน">
+        <input id="stock" type="number" placeholder="Stock หน่วยฐาน">
+        <input id="reorderPoint" type="number" placeholder="ReorderPoint จุดสั่งซื้อ">
+      </div>
+      <button onclick="addProduct()">เพิ่มสินค้าแม่</button>
+      <div class="small">สินค้าแม่จะเก็บสต็อกเป็นหน่วยฐาน เช่น ชิ้น</div>
+    </div>
   `;
 
+  if(products.length === 0){
+    html += `<div class="error">ยังไม่มีสินค้า</div>`;
+  }
+
   products.forEach(p=>{
+    const lowStock = Number(p.stock || 0) <= Number(p.reorderPoint || 0);
     html += `
       <div class="item">
         <span class="badge">${p.active}</span>
-        <h3>${p.productName}</h3>
-        <div class="row"><b>Barcode:</b> ${p.barcode}</div>
-        <div class="row"><b>Category:</b> ${p.category}</div>
-        <div class="row"><b>Cost:</b> ${p.cost}</div>
-        <div class="row"><b>Price:</b> ${p.price}</div>
-        <div class="row"><b>Stock:</b> ${p.stock}</div>
+        ${lowStock ? `<span class="badge" style="background:#b00020;">⚠️ ใกล้หมด</span>` : ``}
+        <h3>${p.productId} — ${p.productName}</h3>
+        <div class="row"><b>Category:</b> ${p.category || "-"}</div>
+        <div class="row"><b>Brand:</b> ${p.brand || "-"}</div>
+        <div class="row"><b>BaseUnit:</b> ${p.baseUnit || "-"}</div>
+        <div class="row"><b>Cost:</b> ${p.cost || "0"}</div>
+        <div class="row"><b>Stock:</b> ${p.stock || "0"} ${p.baseUnit || ""}</div>
+        <div class="row"><b>ReorderPoint:</b> ${p.reorderPoint || "0"}</div>
+
+        <button onclick="showAddUnitForm('${p.productId}')" class="btn-green">➕ เพิ่มหน่วยขาย / Barcode</button>
         ${
           currentUser.role === "OWNER"
-          ? `<button class="btn-red" onclick="deactivateProduct('${p.barcode}')">ปิดการใช้งานสินค้า</button>`
+          ? `<button class="btn-red" onclick="deactivateProduct('${p.productId}')">ปิดการใช้งานสินค้าแม่</button>`
           : ``
         }
+
+        <div id="unitForm_${safeId(p.productId)}" class="hidden"></div>
+
+        <div class="loading">หน่วยขาย / Barcode</div>
+        ${renderUnits(p)}
       </div>
     `;
   });
 
   document.getElementById("content").innerHTML = html;
 
-  ["barcode","productName","category","cost","price","stock"].forEach(id=>{
+  ["productId","productName","category","brand","baseUnit","cost","stock","reorderPoint"].forEach(id=>{
     setTimeout(()=>{
       const el = document.getElementById(id);
       if(el) el.addEventListener("keydown", e=>{ if(e.key==="Enter") addProduct(); });
+    },100);
+  });
+}
+
+function renderUnits(p){
+  if(!p.units || p.units.length === 0){
+    return `<div class="error">ยังไม่มีหน่วยขาย กรุณาเพิ่ม Barcode อย่างน้อย 1 หน่วย</div>`;
+  }
+
+  let html = "";
+  p.units.forEach(u=>{
+    html += `
+      <div class="unit">
+        <div><b>Barcode:</b> ${u.barcode}</div>
+        <div><b>Unit:</b> ${u.unitName}</div>
+        <div><b>Ratio:</b> ${u.ratio} ${p.baseUnit || ""}</div>
+        <div><b>Price:</b> ${u.price} บาท</div>
+        <div><b>Active:</b> ${u.active}</div>
+        ${
+          currentUser.role === "OWNER"
+          ? `<button class="btn-red" onclick="deactivateProductUnit('${u.barcode}')">ปิดหน่วยขายนี้</button>`
+          : ``
+        }
+      </div>
+    `;
+  });
+  return html;
+}
+
+function safeId(value){
+  return String(value || '').replace(/[^a-zA-Z0-9ก-๙]/g,'_');
+}
+
+function showAddUnitForm(productId){
+  resetSessionTimer();
+  const box = document.getElementById("unitForm_" + safeId(productId));
+  if(!box) return;
+
+  if(!box.classList.contains("hidden")){
+    box.classList.add("hidden");
+    box.innerHTML = "";
+    return;
+  }
+
+  box.classList.remove("hidden");
+  box.innerHTML = `
+    <div class="unit">
+      <h3>➕ เพิ่มหน่วยขายให้ ${productId}</h3>
+      <input id="unitBarcode_${safeId(productId)}" placeholder="Barcode">
+      <input id="unitName_${safeId(productId)}" placeholder="UnitName เช่น ชิ้น / โหล / ลัง">
+      <input id="unitRatio_${safeId(productId)}" type="number" placeholder="Ratio เช่น 1 / 12 / 48">
+      <input id="unitPrice_${safeId(productId)}" type="number" placeholder="Price ราคาขาย">
+      <button onclick="addProductUnit('${productId}')" class="btn-green">บันทึกหน่วยขาย</button>
+    </div>
+  `;
+
+  ["unitBarcode_","unitName_","unitRatio_","unitPrice_"].forEach(prefix=>{
+    setTimeout(()=>{
+      const el = document.getElementById(prefix + safeId(productId));
+      if(el) el.addEventListener("keydown", e=>{ if(e.key==="Enter") addProductUnit(productId); });
     },100);
   });
 }
@@ -469,16 +545,67 @@ async function addProduct(){
 
   const data = {
     action:"addProduct",
-    barcode:document.getElementById("barcode").value.trim(),
+    productId:document.getElementById("productId").value.trim(),
     productName:document.getElementById("productName").value.trim(),
     category:document.getElementById("category").value.trim(),
+    brand:document.getElementById("brand").value.trim(),
+    baseUnit:document.getElementById("baseUnit").value.trim(),
     cost:document.getElementById("cost").value.trim(),
-    price:document.getElementById("price").value.trim(),
-    stock:document.getElementById("stock").value.trim()
+    stock:document.getElementById("stock").value.trim(),
+    reorderPoint:document.getElementById("reorderPoint").value.trim()
   };
 
   try{
     const res = await jsonp(buildUrl(authParams(data)));
+    if(!res.success){
+      alert(res.error);
+      return;
+    }
+    await loadDashboard();
+    currentTab = "products";
+    renderDashboard();
+  }catch(err){
+    alert(err.message);
+  }
+}
+
+async function addProductUnit(productId){
+  resetSessionTimer();
+  const id = safeId(productId);
+
+  const data = {
+    action:"addProductUnit",
+    productId:productId,
+    barcode:document.getElementById("unitBarcode_"+id).value.trim(),
+    unitName:document.getElementById("unitName_"+id).value.trim(),
+    ratio:document.getElementById("unitRatio_"+id).value.trim(),
+    price:document.getElementById("unitPrice_"+id).value.trim()
+  };
+
+  try{
+    const res = await jsonp(buildUrl(authParams(data)));
+    if(!res.success){
+      alert(res.error);
+      return;
+    }
+    await loadDashboard();
+    currentTab = "products";
+    renderDashboard();
+  }catch(err){
+    alert(err.message);
+  }
+}
+
+async function deactivateProduct(productId){
+  resetSessionTimer();
+  if(!confirm("ปิดการใช้งานสินค้าแม่ ProductID: " + productId + " ?")) return;
+
+  try{
+    const res = await jsonp(buildUrl(authParams({
+      action:"deactivateProduct",
+      productId:productId
+    })));
+
     if(!res.success) alert(res.error);
     await loadDashboard();
     currentTab = "products";
@@ -488,14 +615,13 @@ async function addProduct(){
   }
 }
 
-async function deactivateProduct(barcode){
+async function deactivateProductUnit(barcode){
   resetSessionTimer();
-
-  if(!confirm("ปิดการใช้งานสินค้า Barcode: " + barcode + " ?")) return;
+  if(!confirm("ปิดการใช้งานหน่วยขาย Barcode: " + barcode + " ?")) return;
 
   try{
     const res = await jsonp(buildUrl(authParams({
-      action:"deactivateProduct",
+      action:"deactivateProductUnit",
       barcode:barcode
     })));
 
@@ -508,15 +634,19 @@ async function deactivateProduct(barcode){
   }
 }
 
+/* ========== POS PLACEHOLDER ========== */
+
 function renderPOS(){
   document.getElementById("content").innerHTML = `
-    <div class="success">🛒 POS</div>
+    <div class="success">🛒 POS V1</div>
     <div class="item">
-      ระบบ POS จะเชื่อมต่อขั้นถัดไป<br>
-      รองรับการยิง Barcode / คิดเงิน / พิมพ์ใบเสร็จ
+      ขั้นต่อไปจะทำช่องยิง Barcode แล้วดึงข้อมูลจาก PRODUCT_UNITS<br>
+      ถ้ายิงหน่วยโหล ระบบจะตัดสต็อกตาม Ratio เช่น 12 ชิ้นอัตโนมัติ
     </div>
   `;
 }
+
+/* ========== OWNER MENU ========== */
 
 async function renderAdmins(){
   resetSessionTimer();
