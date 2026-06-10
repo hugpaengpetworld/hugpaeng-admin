@@ -152,19 +152,19 @@ button:hover{filter:brightness(.97)}
 
 .input-group img{
   position:absolute;
-  left:15px;
+  left:16px;
   top:50%;
   transform:translateY(-50%);
-  width:30px;
-  height:30px;
+  width:90px;
+  height:90px;
   object-fit:contain;
   pointer-events:none;
 }
 
 .input-group input{
-  padding-left:58px;
-  height:58px;
-  border-radius:20px;
+  padding-left:120px;
+  height:72px;
+  border-radius:22px;
   background:#fffdf8;
   border:1px solid #eadcc8;
 }
@@ -175,13 +175,6 @@ button:hover{filter:brightness(.97)}
   margin-top:18px;
   background:linear-gradient(135deg,var(--green),#214d36);
   box-shadow:0 10px 20px rgba(49,95,69,.22);
-}
-
-.login-note{
-  margin-top:14px;
-  text-align:center;
-  color:#8c6a5d;
-  font-size:13px;
 }
 
 .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
@@ -208,6 +201,8 @@ button:hover{filter:brightness(.97)}
   body{padding:12px}
   .card{padding:16px;border-radius:26px}
   .admin-topbar img{width:46px;height:46px}
+  .input-group img{width:74px;height:74px}
+  .input-group input{padding-left:100px;height:66px}
 }
 </style>
 </head>
@@ -314,10 +309,6 @@ function showLogin(){
       </div>
 
       <button class="login-btn" onclick="login()">เข้าสู่ระบบ</button>
-
-      <div class="login-note">
-        กด Enter เพื่อเข้าสู่ระบบได้ทันที
-      </div>
     </div>
   `);
 
