@@ -36,6 +36,8 @@ Configure these GitHub Actions repository secrets before running **database rest
 
 Store only the raw database passwords in the two password secrets. The workflow percent-encodes them and constructs process-only Session pooler URLs. Never store a database URI in source control.
 
+Keep `supabase/config.toml` `db.major_version` aligned with both hosted projects before running the drill. The current CLEAN staging and isolated restore target use PostgreSQL 17; a mismatched dump client must fail before any restore operation.
+
 The workflow creates roles/schema/data dumps on the encrypted ephemeral runner, records only SHA-256 evidence, and never uploads the dumps as Actions artifacts. It then destructively rebuilds only the hard-locked restore target from reviewed migrations without seed data, restores the source application data, reconciles the complete `public` schema and every public table fingerprint, verifies Auth create/login/delete, runs all database integration workflows, verifies fixture cleanup, and removes the temporary dumps even when a step fails.
 
 For this CLEAN staging drill, Storage contains no uploaded objects. The reviewed migrations recreate the private `tenant-assets` bucket and its policies. A later drill with uploaded objects must additionally export, restore, and checksum the object manifest and binaries; PostgreSQL dump files do not contain Storage object binaries.
