@@ -39,11 +39,11 @@ select is(
     from pg_policies
     where schemaname = 'public'
       and tablename = 'file_assets'
-      and policyname = 'file_assets_insert_by_purpose'
+      and policyname = 'file_assets_insert_permission'
       and cmd = 'INSERT'
   ),
   1,
-  'file metadata inserts are restricted by purpose and role'
+  'file metadata inserts are restricted by purpose and capability'
 );
 select is(
   (
@@ -51,11 +51,11 @@ select is(
     from pg_policies
     where schemaname = 'storage'
       and tablename = 'objects'
-      and policyname = 'tenant_assets_insert_by_purpose'
+      and policyname = 'tenant_assets_insert_permission'
       and cmd = 'INSERT'
   ),
   1,
-  'storage uploads are restricted by purpose and role'
+  'storage uploads are restricted by purpose and capability'
 );
 
 select * from finish();

@@ -22,7 +22,7 @@ select ok(
     select 1 from pg_policies
     where schemaname = 'public'
       and tablename = 'tenant_memberships'
-      and policyname = 'memberships_select_self_or_owner'
+      and policyname = 'memberships_select_self_or_manager'
   ),
   'members and owners retain scoped membership reads'
 );
