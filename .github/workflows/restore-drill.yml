@@ -99,10 +99,28 @@ jobs:
           set -euo pipefail
           sudo apt-get update
           sudo apt-get install --yes postgresql-client
+          restore_file="$RUNNER_TEMP/gate3-backup/restore.sql"
+          cat > "$restore_file" <<'SQL'
+          DO $$
+          DECLARE
+            public_tables text;
+          BEGIN
+            SELECT string_agg(format('%I.%I', schemaname, tablename), ', ')
+            INTO public_tables
+            FROM pg_tables
+            WHERE schemaname = 'public';
+
+            IF public_tables IS NOT NULL THEN
+              EXECUTE 'TRUNCATE TABLE ' || public_tables || ' RESTART IDENTITY CASCADE';
+            END IF;
+          END
+          $$;
+          SQL
+          cat "$RUNNER_TEMP/gate3-backup/data.sql" >> "$restore_file"
           psql "$TARGET_DATABASE_URL" \
             --set ON_ERROR_STOP=on \
             --single-transaction \
-            --file "$RUNNER_TEMP/gate3-backup/data.sql"
+            --file "$restore_file"
 
       - name: Reconcile schema and every public table
         run: npm run gate3:reconcile
