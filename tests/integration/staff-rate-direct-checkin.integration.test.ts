@@ -199,7 +199,7 @@ describeWithDatabase("custom staff rates and direct check-in", () => {
               pets: [{ name: "ด่าง", weightKg: 12 }],
             },
           ])}::jsonb,
-          50_000, ${randomUUID()}
+          50000, ${randomUUID()}
         ) as result
       `,
     );
@@ -293,7 +293,7 @@ describeWithDatabase("custom staff rates and direct check-in", () => {
           select public.create_and_check_in_back_office_booking(
             ${tenantId}, 'มัดจำไม่ครบ', '0844444444', 'Ushortdeposit', 'LINE',
             ${bangkokToday}, ${bangkokTomorrow}, null,
-            ${sql.json(baseUnits)}::jsonb, 49_900, ${randomUUID()}
+            ${sql.json(baseUnits)}::jsonb, 49900, ${randomUUID()}
           )
         `,
       ),
@@ -414,7 +414,7 @@ describeWithDatabase("custom staff rates and direct check-in", () => {
         async (transaction) =>
           await transaction`
             select public.check_in_room_booking(
-              ${bookingId}, ${rooms.CAT06!}, 49_900, null,
+              ${bookingId}, ${rooms.CAT06!}, 49900, null,
               ${booking!.version}, ${randomUUID()}
             )
           `,
@@ -426,7 +426,7 @@ describeWithDatabase("custom staff rates and direct check-in", () => {
       async (transaction) =>
         await transaction`
           select public.check_in_room_booking(
-            ${bookingId}, ${rooms.CAT06!}, 50_000, null,
+            ${bookingId}, ${rooms.CAT06!}, 50000, null,
             ${booking!.version}, ${randomUUID()}
           )
         `,

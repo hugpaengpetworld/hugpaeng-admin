@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(3);
+select plan(7);
 
 select is(
   (
@@ -44,6 +44,26 @@ select is(
   ),
   0,
   'anonymous clients cannot execute security definer functions directly'
+);
+
+select ok(
+  has_table_privilege('authenticated', 'public.room_inventory', 'SELECT'),
+  'authenticated users can reach room inventory RLS policies'
+);
+
+select ok(
+  has_table_privilege('authenticated', 'public.customers', 'SELECT'),
+  'authenticated users can reach customer RLS policies'
+);
+
+select ok(
+  not has_table_privilege('authenticated', 'public.room_inventory', 'INSERT'),
+  'room creation remains restricted to transactional functions'
+);
+
+select ok(
+  has_table_privilege('authenticated', 'public.file_assets', 'INSERT'),
+  'authorized uploads can reach the file asset insert policy'
 );
 
 select * from finish();
