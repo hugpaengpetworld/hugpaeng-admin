@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <?!= include('Styles'); ?>
+</head>
+<body>
+  <?!= include('Icons'); ?>
+  <section id="login-view" class="login-page">
+    <form id="login-form" class="card login-card">
+      <div class="brand" style="margin-bottom:24px">
+        <div class="brand-mark" data-brand-logo aria-hidden="true">🐾</div>
+        <div><strong data-clinic-name-th>คลินิกบ้านหมอปอยรักษาสัตว์</strong><small data-clinic-name-en>Baan Mhor Poy Vet Clinic</small></div>
+      </div>
+      <h1 style="margin:0 0 5px">เข้าสู่ระบบ</h1>
+      <p style="color:var(--muted);margin-top:0">สำหรับเจ้าของ หมอ และพนักงาน</p>
+      <div class="field" style="margin-top:20px">
+        <label for="login-username">ชื่อผู้ใช้</label>
+        <input id="login-username" autocomplete="username" required>
+      </div>
+      <div class="field" style="margin-top:14px">
+        <label for="login-password">รหัสผ่าน</label>
+        <input id="login-password" type="password" autocomplete="current-password" required>
+      </div>
+      <div class="actions">
+        <button class="btn btn-primary" style="width:100%">เข้าสู่ระบบ</button>
+      </div>
+      <a href="<?= appUrl ?>" style="display:block;text-align:center;color:var(--green-700);margin-top:15px">กลับหน้าจองของลูกค้า</a>
+    </form>
+  </section>
+
+  <div id="admin-view" class="admin-shell" hidden>
+    <aside id="admin-sidebar" class="sidebar" aria-label="เมนูหลังบ้าน">
+      <button id="sidebar-close" class="sidebar-close" type="button" aria-label="ปิดเมนู"><svg class="app-icon" aria-hidden="true"><use href="#icon-close"></use></svg></button>
+      <div class="brand">
+        <div class="brand-mark" data-brand-logo aria-hidden="true">🐾</div>
+        <div class="brand-text"><strong data-clinic-name-th>คลินิกบ้านหมอปอยรักษาสัตว์</strong><small data-clinic-name-en>Baan Mhor Poy Vet Clinic</small></div>
+      </div>
+      <nav class="nav" aria-label="เมนูหลังบ้าน">
+        <button data-view="dashboard" class="active"><span class="nav-icon"><svg class="app-icon" aria-hidden="true"><use href="#icon-dashboard"></use></svg></span><span class="nav-label">ภาพรวม</span></button>
+        <div class="nav-group open">
+          <button type="button" class="nav-parent" data-menu-toggle aria-expanded="true">
+            <span class="nav-icon"><svg class="app-icon" aria-hidden="true"><use href="#icon-boarding"></use></svg></span><span class="nav-label">ฝากเลี้ยง</span><span class="nav-chevron"><svg class="app-icon" aria-hidden="true"><use href="#icon-chevron-down"></use></svg></span>
+          </button>
+          <div class="nav-submenu">
+            <button data-view="bookings"><span class="nav-icon"><svg class="app-icon" aria-hidden="true"><use href="#icon-bookings"></use></svg></span><span class="nav-label">รายการจองฝากเลี้ยง</span></button>
+            <button data-view="boarding-operations"><span class="nav-icon"><svg class="app-icon" aria-hidden="true"><use href="#icon-list"></use></svg></span><span class="nav-label">เช็กอิน–เช็กเอาท์</span></button>
+            <button data-view="cat-rooms"><span class="nav-icon"><svg class="app-icon" aria-hidden="true"><use href="#icon-cat"></use></svg></span><span class="nav-label">ห้องพักแมว</span></button>
+            <button data-view="dog-rooms"><span class="nav-icon"><svg class="app-icon" aria-hidden="true"><use href="#icon-dog"></use></svg></span><span class="nav-label">ห้องพักสุนัข</span></button>
+          </div>
+        </div>
+        <div class="nav-group open">
+          <button type="button" class="nav-parent" data-menu-toggle aria-expanded="true">
+            <span class="nav-icon"><svg class="app-icon" aria-hidden="true"><use href="#icon-sterilization"></use></svg></span><span class="nav-label">ทำหมัน</span><span class="nav-chevron"><svg class="app-icon" aria-hidden="true"><use href="#icon-chevron-down"></use></svg></span>
+          </button>
+          <div class="nav-submenu">
+            <button data-view="sterilization-calendar"><span class="nav-icon"><svg class="app-icon" aria-hidden="true"><use href="#icon-calendar"></use></svg></span><span class="nav-label">ปฏิทินคิวทำหมัน</span></button>
+            <button data-view="sterilization-list"><span class="nav-icon"><svg class="app-icon" aria-hidden="true"><use href="#icon-list"></use></svg></span><span class="nav-label">รายการนัดทำหมัน</span></button>
+          </div>
+        </div>
+        <button data-view="payments"><span class="nav-icon"><svg class="app-icon" aria-hidden="true"><use href="#icon-finance"></use></svg></span><span class="nav-label">การเงิน</span></button>
+        <button data-view="users"><span class="nav-icon"><svg class="app-icon" aria-hidden="true"><use href="#icon-users"></use></svg></span><span class="nav-label">ผู้ใช้งาน</span></button>
+        <button data-view="settings"><span class="nav-icon"><svg class="app-icon" aria-hidden="true"><use href="#icon-settings"></use></svg></span><span class="nav-label">ตั้งค่า</span></button>
+      </nav>
+    </aside>
+    <button id="sidebar-backdrop" class="sidebar-backdrop" type="button" aria-label="ปิดเมนู" tabindex="-1"></button>
+
+    <main class="admin-main">
+      <header class="admin-top">
+        <button id="sidebar-toggle" class="sidebar-toggle" type="button"
+          aria-label="เปิดเมนู" aria-controls="admin-sidebar" aria-expanded="false"><svg class="app-icon" aria-hidden="true"><use href="#icon-menu"></use></svg></button>
+        <div class="admin-title">
+          <small>สถานบริการ / หลังบ้าน</small>
+          <strong id="view-title" style="display:block">ภาพรวมสถานบริการ</strong>
+        </div>
+        <div class="admin-user-actions">
+          <span id="admin-user"></span>
+          <button id="logout-btn" class="btn btn-light btn-small"><svg class="app-icon" aria-hidden="true"><use href="#icon-logout"></use></svg>ออกจากระบบ</button>
+        </div>
+      </header>
+
+      <div class="admin-content">
+        <section id="view-dashboard" class="admin-section">
+          <div class="section-head"><h2>สรุปงานวันนี้</h2><p>ข้อมูลจาก Google Sheets และคำขอที่กันห้องไว้</p></div>
+          <div id="dashboard-metrics" class="metric-grid"></div>
+          <div class="card">
+            <div class="card-head-actions">
+              <div><h3 style="margin-bottom:3px">คำขอรออนุมัติห้อง</h3><p class="hint">รายการเหล่านี้กันความจุไว้แล้ว</p></div>
+              <button class="btn btn-primary btn-small" data-go="bookings">เปิดรายการจอง</button>
+            </div>
+            <div id="pending-preview"></div>
+          </div>
+        </section>
+
+        <section id="view-bookings" class="admin-section" hidden>
+          <div class="section-head section-head-actions">
+            <div><h2>รายการจองฝากเลี้ยง</h2><p>ตรวจ อนุมัติ กำหนดห้อง และเช็กอิน–เช็กเอาท์</p></div>
+            <button id="new-booking-btn" class="btn btn-primary">+ รับจองหลังบ้าน</button>
+          </div>
+          <div class="card" style="padding:16px;margin-bottom:18px">
+            <div class="form-grid three">
+              <div class="field"><label for="booking-search">ค้นหา</label><input id="booking-search" placeholder="รหัส ชื่อ หรือเบอร์โทร"></div>
+              <div class="field"><label for="booking-status-filter">สถานะ</label>
+                <select id="booking-status-filter"><option value="">ทุกสถานะ</option><option value="PENDING_APPROVAL">รออนุมัติห้อง</option><option value="APPROVED_AWAITING_DEPOSIT">รอมัดจำ</option><option value="CONFIRMED">ยืนยันแล้ว</option><option value="CHECKED_IN">เช็กอินแล้ว</option><option value="CHECKED_OUT">เช็กเอาต์แล้ว</option></select>
+              </div>
+              <div class="field" style="justify-content:flex-end"><button id="refresh-bookings-btn" class="btn btn-light">รีเฟรชรายการ</button></div>
+            </div>
+          </div>
+          <div id="bookings-table"></div>
+        </section>
+
+        <section id="view-boarding-operations" class="admin-section" hidden>
+          <div class="section-head"><h2>เช็กอิน–เช็กเอาท์</h2><p>ติดตามรายการที่รอเช็คอิน สัตว์ที่กำลังเข้าพัก และรายการรอเช็กเอาท์ทุกวัน</p></div>
+          <div class="tab-list" role="tablist" aria-label="สถานะเช็กอินและเช็กเอาต์">
+            <button class="tab operation-tab" data-operation="checkin" aria-selected="true">รอเช็คอิน</button>
+            <button class="tab operation-tab" data-operation="active" aria-selected="false">กำลังเข้าพัก/รอเช็กเอาท์</button>
+            <button class="tab operation-tab" data-operation="completed" aria-selected="false">ดำเนินการเสร็จแล้ว</button>
+          </div>
+          <div class="tab-list operation-species-list" role="tablist" aria-label="กรองตามชนิดสัตว์">
+            <button class="tab operation-species-tab" data-species="" aria-selected="true">ทั้งหมด</button>
+            <button class="tab operation-species-tab" data-species="CAT" aria-selected="false">แมว</button>
+            <button class="tab operation-species-tab" data-species="DOG" aria-selected="false">สุนัข</button>
+          </div>
+          <div id="boarding-operations-list"></div>
+        </section>
+
+        <section id="view-cat-rooms" class="admin-section" hidden>
+          <div class="section-head"><h2>ห้องพักแมว</h2><p>CAT01–CAT11 สำหรับแมว</p></div>
+          <div class="card room-date-toolbar">
+            <div>
+              <span class="hint">ดูสถานะห้องตามคืนที่เลือก</span>
+              <strong id="cat-room-date-label">วันนี้</strong>
+            </div>
+            <div class="room-date-actions">
+              <button class="btn btn-light btn-small room-prev-date" type="button">‹ วันก่อน</button>
+              <button class="btn btn-light btn-small room-today-date" type="button">วันนี้</button>
+              <label class="room-date-picker"><span class="visually-hidden">เลือกวันที่ดูห้อง</span><input id="cat-room-date" class="room-date-input" type="date"></label>
+              <button class="btn btn-light btn-small room-next-date" type="button">วันถัดไป ›</button>
+            </div>
+          </div>
+          <div class="room-legend" aria-label="คำอธิบายสีสถานะ">
+            <span><i class="legend-dot available"></i>ว่าง</span>
+            <span><i class="legend-dot pending"></i>รออนุมัติห้อง</span>
+            <span><i class="legend-dot occupied"></i>อนุมัติแล้ว/กำลังเข้าพัก</span>
+            <span><i class="legend-dot unavailable"></i>ทำความสะอาด/ซ่อม/ปิดใช้</span>
+          </div>
+          <div id="cat-rooms-grid" class="metric-grid rooms-grid"></div>
+        </section>
+
+        <section id="view-dog-rooms" class="admin-section" hidden>
+          <div class="section-head"><h2>ห้องพักสุนัข</h2><p>DOG01–DOG07 สำหรับสุนัข</p></div>
+          <div class="card room-date-toolbar">
+            <div><span class="hint">ดูสถานะห้องตามคืนที่เลือก</span><strong id="dog-room-date-label">วันนี้</strong></div>
+            <div class="room-date-actions">
+              <button class="btn btn-light btn-small room-prev-date" type="button">‹ วันก่อน</button>
+              <button class="btn btn-light btn-small room-today-date" type="button">วันนี้</button>
+              <label class="room-date-picker"><span class="visually-hidden">เลือกวันที่ดูห้อง</span><input id="dog-room-date" class="room-date-input" type="date"></label>
+              <button class="btn btn-light btn-small room-next-date" type="button">วันถัดไป ›</button>
+            </div>
+          </div>
+          <div class="room-legend" aria-label="คำอธิบายสีสถานะ">
+            <span><i class="legend-dot available"></i>ว่าง</span><span><i class="legend-dot pending"></i>รออนุมัติห้อง</span>
+            <span><i class="legend-dot occupied"></i>อนุมัติแล้ว/กำลังเข้าพัก</span><span><i class="legend-dot unavailable"></i>ทำความสะอาด/ซ่อม/ปิดใช้</span>
+          </div>
+          <div id="dog-rooms-grid" class="metric-grid rooms-grid"></div>
+        </section>
+
+        <section id="view-sterilization-calendar" class="admin-section" hidden>
+          <div class="section-head section-head-actions">
+            <div><h2>ปฏิทินคิวทำหมัน</h2><p>รับนัดได้สูงสุด 4 ตัวต่อวัน และสร้างรายการได้เฉพาะหลังบ้าน</p></div>
+            <button class="btn btn-primary new-sterilization-btn">+ รับจองทำหมัน</button>
+          </div>
+          <div class="card" style="padding:16px;margin-bottom:18px">
+            <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
+              <div class="field" style="max-width:260px">
+                <label for="sterilization-month">เลือกเดือน</label>
+                <input id="sterilization-month" type="month">
+              </div>
+              <button id="manage-sterilization-holidays-btn" class="btn btn-light" type="button" hidden>
+                ตั้งวันหยุดทำหมัน
+              </button>
+            </div>
+          </div>
+          <div id="sterilization-calendar"></div>
+        </section>
+
+        <section id="view-sterilization-list" class="admin-section" hidden>
+          <div class="section-head section-head-actions">
+            <div><h2>รายการนัดทำหมัน</h2><p>ค้นหา ตรวจสอบ และเปลี่ยนสถานะนัดหมาย</p></div>
+            <button class="btn btn-primary new-sterilization-btn">+ รับจองทำหมัน</button>
+          </div>
+          <div class="card" style="padding:16px;margin-bottom:18px">
+            <div class="form-grid three">
+              <div class="field"><label for="sterilization-search">ค้นหา</label><input id="sterilization-search" placeholder="รหัส ชื่อผู้จอง เบอร์โทร หรือชื่อสัตว์"></div>
+              <div class="field"><label for="sterilization-date-filter">วันที่นัด</label><input id="sterilization-date-filter" type="date"></div>
+              <div class="field"><label for="sterilization-status-filter">สถานะ</label>
+                <select id="sterilization-status-filter">
+                  <option value="">ทุกสถานะ</option>
+                  <option value="PENDING_CONFIRMATION">รอยืนยันนัด</option>
+                  <option value="CONFIRMED">ยืนยันนัดแล้ว</option>
+                  <option value="ARRIVED">มาถึงคลินิกแล้ว</option>
+                  <option value="COMPLETED">ดำเนินการเสร็จแล้ว</option>
+                  <option value="CANCELLED">ยกเลิก</option>
+                  <option value="NO_SHOW">ไม่มาตามนัด</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div id="sterilization-list"></div>
+        </section>
+
+        <section id="view-payments" class="admin-section" hidden>
+          <div class="section-head"><h2>การเงินและมัดจำ</h2><p>มัดจำใช้เฉพาะรายการ LINE และต้องตรวจสลิปโดยพนักงาน</p></div>
+          <div class="card"><div class="empty">เปิดรายละเอียดรายการจองที่มีสถานะ “ส่งสลิปแล้ว” เพื่อตรวจรับมัดจำ<br>การบันทึกคืนส่วนต่างทำได้เฉพาะเจ้าของระบบ</div></div>
+        </section>
+
+        <section id="view-users" class="admin-section" hidden>
+          <div class="section-head section-head-actions">
+            <div><h2>ผู้ใช้งานและสิทธิ์</h2><p>เจ้าของระบบเท่านั้นที่สร้างและปิดบัญชีได้</p></div>
+            <button id="new-user-btn" class="btn btn-primary">+ เพิ่มผู้ใช้</button>
+          </div>
+          <div id="users-content" class="card"></div>
+        </section>
+
+        <section id="view-settings" class="admin-section" hidden>
+          <div class="section-head"><h2>ตั้งค่าระบบ</h2><p>ข้อมูลติดต่อ การชำระเงิน และ LINE OA</p></div>
+          <div id="settings-content"></div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <div id="modal-root"></div>
+  <?!= include('CommonClient'); ?>
+  <?!= include('AdminClient'); ?>
+</body>
+</html>

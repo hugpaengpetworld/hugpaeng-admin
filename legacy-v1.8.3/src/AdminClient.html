@@ -1,0 +1,1385 @@
+<script>
+  var adminState = {
+    token: localStorage.getItem('bmpAdminToken') || '',
+    user: null,
+    permissions: [],
+    bookings: [],
+    rooms: [],
+    roomDate: '',
+    sterilizations: [],
+    sterilizationCalendar: null,
+    boardingOperationMode: 'checkin',
+    boardingSpecies: ''
+  };
+
+  document.addEventListener('DOMContentLoaded', function() {
+    loadPublicBranding();
+    initResponsiveAdminNavigation();
+    document.getElementById('login-form').addEventListener('submit', handleLogin);
+    document.getElementById('logout-btn').addEventListener('click', handleLogout);
+    document.getElementById('refresh-bookings-btn').addEventListener('click', loadBookings);
+    document.getElementById('booking-search').addEventListener('input', renderBookings);
+    document.getElementById('booking-status-filter').addEventListener('change', renderBookings);
+    document.getElementById('new-booking-btn').addEventListener('click', showStaffBookingModal);
+    document.getElementById('new-user-btn').addEventListener('click', showNewUserModal);
+    document.querySelectorAll('.room-date-input').forEach(function(input) {
+      input.addEventListener('change', function(event) { loadRoomsForDate(event.target.value); });
+    });
+    document.querySelectorAll('.room-prev-date').forEach(function(button) {
+      button.addEventListener('click', function() { loadRoomsForDate(addDaysIso(adminState.roomDate, -1)); });
+    });
+    document.querySelectorAll('.room-today-date').forEach(function(button) {
+      button.addEventListener('click', function() { loadRoomsForDate(adminState.todayIso); });
+    });
+    document.querySelectorAll('.room-next-date').forEach(function(button) {
+      button.addEventListener('click', function() { loadRoomsForDate(addDaysIso(adminState.roomDate, 1)); });
+    });
+    document.querySelectorAll('.operation-tab').forEach(function(button) {
+      button.addEventListener('click', function() {
+        document.querySelectorAll('.operation-tab').forEach(function(tab) {
+          tab.setAttribute('aria-selected', String(tab === button));
+        });
+        adminState.boardingOperationMode = button.dataset.operation;
+        renderBoardingOperations();
+      });
+    });
+    document.querySelectorAll('.operation-species-tab').forEach(function(button) {
+      button.addEventListener('click', function() {
+        document.querySelectorAll('.operation-species-tab').forEach(function(tab) {
+          tab.setAttribute('aria-selected', String(tab === button));
+        });
+        adminState.boardingSpecies = button.dataset.species || '';
+        renderBoardingOperations();
+      });
+    });
+    document.querySelectorAll('.nav [data-view]').forEach(function(button) {
+      button.addEventListener('click', function() { showView(button.dataset.view); });
+    });
+    document.querySelectorAll('[data-menu-toggle]').forEach(function(button) {
+      button.addEventListener('click', function() {
+        var group = button.closest('.nav-group');
+        var isOpen = group.classList.toggle('open');
+        button.setAttribute('aria-expanded', String(isOpen));
+      });
+    });
+    document.querySelectorAll('[data-go]').forEach(function(button) {
+      button.addEventListener('click', function() { showView(button.dataset.go); });
+    });
+    document.querySelectorAll('.new-sterilization-btn').forEach(function(button) {
+      button.addEventListener('click', function() { showSterilizationModal(); });
+    });
+    document.getElementById('manage-sterilization-holidays-btn')
+      .addEventListener('click', showSterilizationHolidayModal);
+    document.getElementById('sterilization-search')
+      .addEventListener('input', renderSterilizations);
+    document.getElementById('sterilization-date-filter')
+      .addEventListener('change', renderSterilizations);
+    document.getElementById('sterilization-status-filter')
+      .addEventListener('change', renderSterilizations);
+    document.getElementById('sterilization-month').value = currentMonthIso();
+    document.getElementById('sterilization-month')
+      .addEventListener('change', loadSterilizationCalendar);
+    if (adminState.token) bootstrapAdmin();
+  });
+
+  async function loadPublicBranding() {
+    try { applyBranding(await gasCall('getPublicConfig')); } catch (error) {}
+  }
+
+  function initResponsiveAdminNavigation() {
+    document.getElementById('sidebar-toggle').addEventListener('click', openAdminSidebar);
+    document.getElementById('sidebar-close').addEventListener('click', closeAdminSidebar);
+    document.getElementById('sidebar-backdrop').addEventListener('click', closeAdminSidebar);
+    window.addEventListener('resize', function() {
+      if (window.innerWidth > 1024) closeAdminSidebar();
+    });
+    document.addEventListener('keydown', function(event) {
+      if (event.key === 'Escape') closeAdminSidebar();
+    });
+  }
+
+  function openAdminSidebar() {
+    document.getElementById('admin-view').classList.add('sidebar-open');
+    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', 'true');
+    document.body.classList.add('navigation-open');
+  }
+
+  function closeAdminSidebar() {
+    document.getElementById('admin-view').classList.remove('sidebar-open');
+    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', 'false');
+    document.body.classList.remove('navigation-open');
+  }
+
+  async function handleLogin(event) {
+    event.preventDefault();
+    var button = event.submitter;
+    setBusy(button, true);
+    try {
+      var result = await gasCall(
+        'login',
+        document.getElementById('login-username').value,
+        document.getElementById('login-password').value
+      );
+      adminState.token = result.token;
+      localStorage.setItem('bmpAdminToken', result.token);
+      await bootstrapAdmin();
+    } catch (error) { showToast(error.message, true); }
+    finally { setBusy(button, false, 'เข้าสู่ระบบ'); }
+  }
+
+  async function bootstrapAdmin() {
+    try {
+      var data = await gasCall('getAdminBootstrap', adminState.token);
+      adminState.user = data.user;
+      adminState.permissions = data.permissions;
+      adminState.rooms = data.rooms;
+      adminState.roomDate = data.roomDate;
+      adminState.todayIso = data.roomDate;
+      document.getElementById('manage-sterilization-holidays-btn').hidden =
+        adminState.permissions.indexOf('sterilization:holiday') === -1;
+      document.getElementById('login-view').hidden = true;
+      document.getElementById('admin-view').hidden = false;
+      document.getElementById('admin-user').textContent =
+        data.user.displayName + ' · ' + roleLabel(data.user.role);
+      renderDashboard(data.dashboard);
+      renderRooms();
+      await loadBookings();
+      await loadUsers();
+      await loadSettings();
+      if (data.user.mustChangePassword) showChangePasswordModal();
+    } catch (error) {
+      localStorage.removeItem('bmpAdminToken');
+      adminState.token = '';
+      document.getElementById('login-view').hidden = false;
+      document.getElementById('admin-view').hidden = true;
+      if (error.message) showToast(error.message, true);
+    }
+  }
+
+  async function handleLogout() {
+    try { await gasCall('logout', adminState.token); } catch (error) {}
+    localStorage.removeItem('bmpAdminToken');
+    location.reload();
+  }
+
+  function showView(name) {
+    document.querySelectorAll('.admin-section').forEach(function(section) { section.hidden = true; });
+    document.getElementById('view-' + name).hidden = false;
+    document.querySelectorAll('.nav [data-view]').forEach(function(button) {
+      button.classList.toggle('active', button.dataset.view === name);
+    });
+    var titles = {
+      dashboard:'ภาพรวมสถานบริการ',
+      bookings:'รายการจองฝากเลี้ยง',
+      'boarding-operations':'เช็กอิน–เช็กเอาต์',
+      'cat-rooms':'ห้องพักแมว',
+      'dog-rooms':'ห้องพักสุนัข',
+      'sterilization-calendar':'ปฏิทินคิวทำหมัน',
+      'sterilization-list':'รายการนัดทำหมัน',
+      payments:'การเงินและมัดจำ',
+      users:'ผู้ใช้งาน',
+      settings:'ตั้งค่าระบบ'
+    };
+    document.getElementById('view-title').textContent = titles[name] || name;
+    if (name === 'bookings') loadBookings();
+    if (name === 'boarding-operations') {
+      adminState.boardingOperationMode = 'checkin';
+      adminState.boardingSpecies = '';
+      document.querySelectorAll('.operation-tab').forEach(function(tab) {
+        tab.setAttribute('aria-selected', String(tab.dataset.operation === 'checkin'));
+      });
+      document.querySelectorAll('.operation-species-tab').forEach(function(tab) {
+        tab.setAttribute('aria-selected', String(!tab.dataset.species));
+      });
+      loadBookings().then(renderBoardingOperations);
+    }
+    if (name === 'cat-rooms' || name === 'dog-rooms') loadRoomsForDate(adminState.roomDate || adminState.todayIso);
+    if (name === 'sterilization-calendar') loadSterilizationCalendar();
+    if (name === 'sterilization-list') loadSterilizations();
+    if (window.innerWidth <= 1024) closeAdminSidebar();
+  }
+
+  function renderDashboard(data) {
+    var items = [
+      ['รออนุมัติห้อง', data.pendingApproval, 'คำขอที่กันห้องแล้ว'],
+      ['รอมัดจำ LINE', data.awaitingDeposit, 'มีเวลา 1 ชั่วโมง'],
+      ['เช็กอินวันนี้', data.checkInToday, 'รายการนัดเข้า'],
+      ['เช็กเอาต์วันนี้', data.checkOutToday, 'รายการนัดรับกลับ']
+    ];
+    document.getElementById('dashboard-metrics').innerHTML = items.map(function(item) {
+      return '<div class="card"><span class="hint">' + item[0] + '</span><strong style="display:block;font-size:2rem;margin:7px 0">' +
+        item[1] + '</strong><span class="hint">' + item[2] + '</span></div>';
+    }).join('');
+  }
+
+  async function loadBookings(event) {
+    if (event) event.preventDefault();
+    try {
+      adminState.bookings = await gasCall('listBookings', adminState.token, {});
+      renderBookings();
+      renderPendingPreview();
+      if (!document.getElementById('view-boarding-operations').hidden) {
+        renderBoardingOperations();
+      }
+    } catch (error) { showToast(error.message, true); }
+  }
+
+  function filteredBookings() {
+    var search = document.getElementById('booking-search').value.toLowerCase();
+    var status = document.getElementById('booking-status-filter').value;
+    return adminState.bookings.filter(function(item) {
+      if (status && item.status !== status) return false;
+      if (search && [item.bookingCode, item.customerName, item.phone]
+        .concat(item.petNames || [])
+        .join(' ').toLowerCase().indexOf(search) === -1) return false;
+      return true;
+    });
+  }
+
+  function renderBookings() {
+    var rows = filteredBookings();
+    var target = document.getElementById('bookings-table');
+    if (!rows.length) {
+      target.innerHTML = '<div class="card empty">ยังไม่พบรายการตามตัวกรอง</div>';
+      return;
+    }
+    target.innerHTML =
+      '<div class="data-table-wrap"><table><thead><tr><th>รหัส</th><th>ผู้จอง</th><th>สัตว์</th><th>วันเข้าพัก</th><th>ห้อง</th><th>สถานะ</th><th></th></tr></thead><tbody>' +
+      rows.map(function(item) {
+        return '<tr><td><strong>' + escapeHtml(item.bookingCode) + '</strong><br><small>' + escapeHtml(item.channel) + '</small></td>' +
+          '<td>' + escapeHtml(item.customerName) + '<br><small>' + escapeHtml(item.phone) + '</small></td>' +
+          '<td>' + (item.species === 'CAT' ? 'แมว' : 'สุนัข') + ' ' + item.petCount + ' ตัว</td>' +
+          '<td>' + escapeHtml(formatDateDisplay(item.checkInDate)) + '<br><small>ถึง ' + escapeHtml(formatDateDisplay(item.checkOutDate)) + '</small></td>' +
+          '<td>' + escapeHtml(item.roomId || 'ยังไม่กำหนด') + '</td>' +
+          '<td><span class="status ' + (item.status === 'PENDING_APPROVAL' ? 'pending' : '') + '">' + escapeHtml(item.statusLabel) + '</span></td>' +
+          '<td><button class="btn btn-light btn-small" onclick="openBookingDetail(\'' + item.bookingId + '\')">เปิด</button></td></tr>';
+      }).join('') + '</tbody></table></div>';
+  }
+
+  function renderPendingPreview() {
+    var rows = adminState.bookings.filter(function(item) { return item.status === 'PENDING_APPROVAL'; }).slice(0, 5);
+    document.getElementById('pending-preview').innerHTML = rows.length ?
+      '<div class="data-table-wrap"><table><thead><tr><th>รหัส</th><th>ลูกค้า</th><th>ประเภท</th><th></th></tr></thead><tbody>' +
+      rows.map(function(item) {
+        return '<tr><td>' + escapeHtml(item.bookingCode) + '</td><td>' + escapeHtml(item.customerName) +
+          '</td><td>' + (item.species === 'CAT' ? 'แมว' : 'สุนัข') + '</td><td><button class="btn btn-light btn-small" onclick="openBookingDetail(\'' +
+          item.bookingId + '\')">ตรวจสอบ</button></td></tr>';
+      }).join('') + '</tbody></table></div>' :
+      '<div class="empty">ไม่มีคำขอที่รออนุมัติ</div>';
+  }
+
+  async function openBookingDetail(bookingId) {
+    try {
+      var detail = await gasCall('getBookingDetail', adminState.token, bookingId);
+      var booking = detail.booking;
+      var actions = [];
+      if (booking.status === 'PENDING_APPROVAL') {
+        actions.push('<button class="btn btn-primary" onclick="bookingAction(\'approveBooking\',\'' + bookingId + '\')">อนุมัติห้อง</button>');
+        actions.push('<button class="btn btn-danger" onclick="rejectCurrent(\'' + bookingId + '\')">ไม่อนุมัติ</button>');
+      }
+      if (booking.status === 'APPROVED_AWAITING_DEPOSIT' && booking.paymentStatus === 'SUBMITTED') {
+        var submitted = detail.payments.filter(function(p) { return p.status === 'SUBMITTED'; })[0];
+        if (submitted) actions.push('<button class="btn btn-primary" onclick="verifyCurrent(\'' + bookingId + '\',\'' + submitted.paymentId + '\')">ตรวจรับมัดจำ</button>');
+      }
+      if (booking.status === 'CONFIRMED') {
+        actions.push('<button class="btn btn-primary" onclick="showCheckInModal(\'' + bookingId + '\')">เช็กอิน</button>');
+      }
+      if (booking.status === 'CHECKED_IN') {
+        actions.push('<button class="btn btn-primary" onclick="showCheckOutModal(\'' + bookingId + '\')">เช็กเอาต์</button>');
+      }
+      if (booking.status === 'CHECKED_OUT') {
+        actions.push('<button class="btn btn-primary" onclick="printReceipt(\'' + bookingId + '\')">พิมพ์ใบเสร็จ</button>');
+      }
+      showModal(
+        '<div class="modal-head"><div><p class="eyebrow">รายละเอียดการจอง</p><h2>' + escapeHtml(booking.bookingCode) +
+        '</h2></div><button class="icon-btn" onclick="closeModal()" aria-label="ปิด">' + iconMarkup('close') + '</button></div>' +
+        '<p><span class="status ' + (booking.status === 'PENDING_APPROVAL' ? 'pending' : '') + '">' +
+        escapeHtml(booking.statusLabel) + '</span></p>' +
+        '<div class="detail-grid">' +
+          detailItem('ผู้จอง', booking.customerName + ' · ' + booking.phone) +
+          detailItem('สัตว์', (booking.species === 'CAT' ? 'แมว' : 'สุนัข') + ' ' + booking.petCount + ' ตัว') +
+          detailItem('วันเข้าพัก', formatDateDisplay(booking.checkInDate) + ' ถึง ' + formatDateDisplay(booking.checkOutDate)) +
+          bookingRoomSelector_(booking, detail.assignableRooms || []) +
+          detailItem('ค่าที่พัก', Number(booking.lodging_total || 0).toLocaleString('th-TH') + ' บาท') +
+          detailItem('การชำระเงิน', booking.paymentStatus) +
+          detailItem('ตรวจสุขภาพ', booking.healthReviewStatus) +
+          detailItem('ค่าใช้จ่ายรวม', Number(detail.settlement.total).toLocaleString('th-TH') + ' บาท') +
+          detailItem('มัดจำที่รับแล้ว', Number(detail.settlement.depositPaid || 0).toLocaleString('th-TH') + ' บาท') +
+        '</div>' +
+        '<h3 style="margin-top:20px">สัตว์เลี้ยง</h3><p>' +
+        detail.pets.map(function(p) { return escapeHtml(p.name) + (p.weight_kg ? ' (' + p.weight_kg + ' กก.)' : ''); }).join(', ') +
+        '</p><div class="actions">' + actions.join('') + '</div>'
+      );
+    } catch (error) { showToast(error.message, true); }
+  }
+
+  function detailItem(label, value) {
+    return '<div class="detail-item"><span>' + escapeHtml(label) + '</span><strong>' + escapeHtml(value) + '</strong></div>';
+  }
+
+  function bookingRoomSelector_(booking, assignableRooms) {
+    if (booking.bookingType === 'EMERGENCY_OWN_CAGE') {
+      return detailItem('ห้องพัก', 'กรงของเจ้าของ');
+    }
+    if (adminState.permissions.indexOf('booking:assign') === -1) {
+      return detailItem('ห้องพัก', booking.roomId || 'ยังไม่กำหนด');
+    }
+    var rooms = (assignableRooms || []).slice();
+    if (booking.roomId && !rooms.some(function(room) { return room.roomId === booking.roomId; })) {
+      rooms.unshift({
+        roomId: booking.roomId,
+        roomName: booking.roomId,
+        selected: true
+      });
+    }
+    var options = ['<option value="">ยังไม่กำหนด</option>'].concat(rooms.map(function(room) {
+      return '<option value="' + escapeHtml(room.roomId) + '"' +
+        (room.roomId === booking.roomId || room.selected ? ' selected' : '') + '>' +
+        escapeHtml(room.roomName || room.roomId) + '</option>';
+    })).join('');
+    return '<div class="detail-item booking-room-field"><label for="booking-room-select">ห้องพัก</label>' +
+      '<select id="booking-room-select" data-previous-value="' + escapeHtml(booking.roomId || '') +
+      '" onchange="assignBookingRoomFromSelect(\'' + booking.bookingId + '\',this)">' + options + '</select>' +
+      '<small>แสดงเฉพาะห้องของสัตว์ชนิดนี้ที่ว่างตลอดช่วงวันจอง</small></div>';
+  }
+
+  async function assignBookingRoomFromSelect(bookingId, select) {
+    var previousValue = select.dataset.previousValue || '';
+    if (!select.dataset.previousValue) select.dataset.previousValue = previousValue;
+    if (!select.value) {
+      showToast('กรุณาเลือกห้องพัก', true);
+      select.value = previousValue;
+      return;
+    }
+    select.disabled = true;
+    try {
+      await gasCall('assignRoom', adminState.token, bookingId, select.value);
+      select.dataset.previousValue = select.value;
+      showToast('กำหนดห้องพักแล้ว');
+      await bootstrapAdmin();
+    } catch (error) {
+      select.value = previousValue;
+      showToast(error.message, true);
+    } finally {
+      select.disabled = false;
+    }
+  }
+
+  async function bookingAction(functionName, bookingId) {
+    try {
+      await gasCall(functionName, adminState.token, bookingId);
+      closeModal(); showToast('บันทึกเรียบร้อย'); await bootstrapAdmin();
+    } catch (error) { showToast(error.message, true); }
+  }
+
+  async function showCheckInModal(bookingId) {
+    var depositPaid = 0;
+    try {
+      var detail = await gasCall('getBookingDetail', adminState.token, bookingId);
+      depositPaid = Number(detail.settlement.depositPaid || 0);
+    } catch (error) { showToast(error.message, true); return; }
+    showModal('<div class="modal-head"><div><p class="eyebrow">รับสัตว์เข้าพัก</p><h2>เช็กอิน</h2></div><button class="icon-btn" onclick="closeModal()" aria-label="ปิด">' + iconMarkup('close') + '</button></div>' +
+      '<form onsubmit="submitCheckIn(event,\'' + bookingId + '\')"><div class="form-grid" style="margin-top:18px">' +
+      '<div class="field"><label>มัดจำที่รับจริงทั้งหมด (บาท)</label><input id="checkin-deposit" type="number" min="' + depositPaid + '" step="1" value="' + depositPaid + '" required><span class="hint">ยอดที่ตรวจรับไว้แล้ว ' + depositPaid.toLocaleString('th-TH') + ' บาท</span></div>' +
+      '<div class="field span-2"><label>หมายเหตุการเข้าพัก</label><textarea id="checkin-notes" placeholder="เช่น นำอาหารมาเอง ซื้ออาหารและชำระแล้ว หรือเลือกอาหารไว้แต่ยังไม่ชำระ"></textarea></div>' +
+      '</div><div class="actions"><button class="btn btn-primary">ยืนยันเช็กอิน</button></div></form>');
+  }
+
+  async function submitCheckIn(event, bookingId) {
+    event.preventDefault(); var button = event.submitter; setBusy(button, true);
+    try {
+      await gasCall('checkInBooking', adminState.token, bookingId, {
+        depositAmount: document.getElementById('checkin-deposit').value,
+        checkInNotes: document.getElementById('checkin-notes').value
+      });
+      closeModal(); showToast('เช็กอินเรียบร้อยแล้ว'); await bootstrapAdmin();
+    } catch (error) { showToast(error.message, true); }
+    finally { setBusy(button, false, 'ยืนยันเช็กอิน'); }
+  }
+
+  function showCheckOutModal(bookingId) {
+    showModal('<div class="modal-head"><div><p class="eyebrow">สรุปค่าใช้จ่าย</p><h2>เช็กเอาต์</h2></div><button class="icon-btn" onclick="closeModal()" aria-label="ปิด">' + iconMarkup('close') + '</button></div>' +
+      '<form onsubmit="submitCheckOut(event,\'' + bookingId + '\')"><div id="checkout-charges" style="margin-top:18px"></div>' +
+      '<div class="form-grid" style="margin-top:18px">' +
+      '<div class="field"><label>วิธีชำระเงิน</label><select id="checkout-payment-method">' +
+      '<option>เงินสด</option><option>โอนเงิน</option><option>พร้อมเพย์</option><option>บัตร</option><option>อื่น ๆ</option><option>ไม่ระบุ</option>' +
+      '</select></div>' +
+      '<div class="field"><label>หมายเหตุในใบเสร็จ</label><textarea id="checkout-receipt-notes" placeholder="ไม่บังคับกรอก"></textarea></div>' +
+      '</div>' +
+      '<div class="actions"><button type="button" class="btn btn-light" onclick="addCheckoutChargeRow()">+ เพิ่มค่าใช้จ่าย</button><button class="btn btn-primary">คำนวณและยืนยันเช็กเอาต์</button></div></form>');
+    addCheckoutChargeRow();
+  }
+
+  function addCheckoutChargeRow() {
+    var row = document.createElement('div'); row.className = 'form-grid checkout-charge-row';
+    row.innerHTML = '<div class="field"><label>ค่าใช้จ่ายเพิ่มเติม</label><select class="checkout-category" onchange="toggleCheckoutOther(this)">' +
+      '<option value="">ไม่เพิ่ม</option><option>ค่าอาหาร</option><option>ค่ายา</option><option>ให้น้ำเกลือ</option><option>ตรวจเลือด</option><option>อื่น ๆ</option></select></div>' +
+      '<div class="field"><label>จำนวนเงิน (บาท)</label><input class="checkout-amount" type="number" min="0" step="1" value="0"></div>' +
+      '<div class="field span-2 checkout-other" hidden><label>รายละเอียดอื่น ๆ</label><input class="checkout-detail"></div>';
+    document.getElementById('checkout-charges').appendChild(row);
+  }
+
+  function toggleCheckoutOther(select) {
+    select.closest('.checkout-charge-row').querySelector('.checkout-other').hidden = select.value !== 'อื่น ๆ';
+  }
+
+  async function submitCheckOut(event, bookingId) {
+    event.preventDefault();
+    var booking = adminState.bookings.find(function(item) {
+      return item.bookingId === bookingId;
+    });
+    var now = new Date();
+    var today = [
+      now.getFullYear(),
+      String(now.getMonth() + 1).padStart(2, '0'),
+      String(now.getDate()).padStart(2, '0')
+    ].join('-');
+    var isEarlyCheckout = false;
+    if (booking && booking.checkOutDate) {
+      try {
+        isEarlyCheckout = toCanonicalDate(booking.checkOutDate) > today;
+      } catch (error) {
+        isEarlyCheckout = false;
+      }
+    }
+    if (isEarlyCheckout && !confirm(
+      'วันออกตามแผนคือ ' + formatDateDisplay(booking.checkOutDate) +
+      ' ซึ่งยังมาไม่ถึง ยืนยันเช็กเอาต์ก่อนกำหนดหรือไม่?'
+    )) {
+      return;
+    }
+    var button = event.submitter; setBusy(button, true);
+    var charges = Array.from(document.querySelectorAll('.checkout-charge-row')).map(function(row) {
+      return { category: row.querySelector('.checkout-category').value,
+        amount: row.querySelector('.checkout-amount').value,
+        detail: row.querySelector('.checkout-detail').value };
+    }).filter(function(item) { return item.category; });
+    var receiptInput = {
+      paymentMethod: document.getElementById('checkout-payment-method').value,
+      notes: document.getElementById('checkout-receipt-notes').value,
+      confirmEarlyCheckout: isEarlyCheckout
+    };
+    try {
+      var result = await gasCall('checkOutBooking', adminState.token, bookingId, charges, receiptInput);
+      var receipt = result.receipt;
+      showModal('<div class="modal-head"><div><p class="eyebrow">ดำเนินการสำเร็จ</p><h2>เช็กเอาต์เรียบร้อยแล้ว</h2></div>' +
+        '<button class="icon-btn" onclick="closeModal()" aria-label="ปิด">' + iconMarkup('close') + '</button></div>' +
+        '<div class="detail-grid" style="margin-top:18px">' +
+        detailItem('ค่าใช้จ่ายรวม', Number(result.settlement.total || 0).toLocaleString('th-TH') + ' บาท') +
+        detailItem('รับเพิ่ม ณ เช็กเอาต์', Number(result.settlement.amountDue || 0).toLocaleString('th-TH') + ' บาท') +
+        detailItem('คืนลูกค้า', Number(result.settlement.refundDue || 0).toLocaleString('th-TH') + ' บาท') +
+        (receipt ? detailItem('เลขที่ใบเสร็จ', receipt.receiptNo) : '') + '</div>' +
+        (result.receiptError ? '<p class="notice warning" style="margin-top:18px">เช็กเอาต์สำเร็จ แต่ยังออกใบเสร็จไม่ได้: ' + escapeHtml(result.receiptError) + '</p>' : '') +
+        '<div class="actions">' +
+        (receipt ? '<button class="btn btn-primary" onclick="printReceipt(\'' + bookingId + '\')">พิมพ์ใบเสร็จ</button>' : '') +
+        '<button class="btn btn-light" onclick="closeModal()">ปิด</button></div>');
+      showToast('เช็กเอาต์เรียบร้อยแล้ว');
+      await bootstrapAdmin();
+    } catch (error) { showToast(error.message, true); }
+    finally { setBusy(button, false, 'คำนวณและยืนยันเช็กเอาต์'); }
+  }
+
+  async function printReceipt(bookingId) {
+    var printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      showToast('เบราว์เซอร์บล็อกหน้าต่างพิมพ์ กรุณาอนุญาตป๊อปอัปแล้วลองใหม่', true);
+      return;
+    }
+    printWindow.document.write('<!doctype html><html lang="th"><head><meta charset="utf-8"><title>กำลังเตรียมใบเสร็จ</title></head><body><p>กำลังเตรียมใบเสร็จ...</p></body></html>');
+    try {
+      var result = await gasCall('getPrintableReceipt', adminState.token, bookingId);
+      printWindow.document.open();
+      printWindow.document.write(result.html);
+      printWindow.document.close();
+      printWindow.focus();
+    } catch (error) {
+      printWindow.close();
+      var message = String(error && error.message ? error.message : error);
+      if (message === 'ไม่อนุญาตให้เรียกคำสั่งนี้') {
+        message = 'ระบบใบเสร็จฝั่งเซิร์ฟเวอร์ยังเป็นรุ่นเดิม กรุณา Deploy Apps Script และ Cloudflare รุ่น 1.8.3 ใหม่';
+      }
+      showToast(message, true);
+    }
+  }
+
+  function boardingDurationLabel(item) {
+    if (item.bookingType === 'DAYCARE' || item.bookingType === 'EMERGENCY_OWN_CAGE') {
+      return 'ภายในวันเดียว';
+    }
+    var nights = Number(item.nights || 0);
+    if (!Number.isFinite(nights) || nights <= 0) {
+      try {
+        var start = toCanonicalDate(item.checkInDate).split('-');
+        var end = toCanonicalDate(item.checkOutDate).split('-');
+        nights = Math.round((Date.UTC(Number(end[0]), Number(end[1]) - 1, Number(end[2])) -
+          Date.UTC(Number(start[0]), Number(start[1]) - 1, Number(start[2]))) / 86400000);
+      } catch (error) {
+        nights = 0;
+      }
+    }
+    return Math.max(1, nights) + ' คืน';
+  }
+
+  function renderBoardingOperations() {
+    var mode = adminState.boardingOperationMode || 'checkin';
+    var isCompleted = mode === 'completed';
+    var species = adminState.boardingSpecies || '';
+    var rows = adminState.bookings.filter(function(item) {
+      if (species && item.species !== species) return false;
+      if (mode === 'checkin') return item.status === 'CONFIRMED';
+      if (mode === 'active') return item.status === 'CHECKED_IN';
+      return item.status === 'CHECKED_OUT';
+    });
+    rows.sort(function(a, b) {
+      var left = mode === 'active' ? a.checkOutDate : a.checkInDate;
+      var right = mode === 'active' ? b.checkOutDate : b.checkInDate;
+      return String(left || '').localeCompare(String(right || '')) ||
+        String(a.bookingCode || '').localeCompare(String(b.bookingCode || ''));
+    });
+    var target = document.getElementById('boarding-operations-list');
+    if (!rows.length) { target.innerHTML = '<div class="card empty">ไม่มีรายการในหมวดนี้</div>'; return; }
+    target.innerHTML = '<div class="data-table-wrap"><table><thead><tr>' +
+      '<th>รหัสการจอง</th><th>เจ้าของ</th><th>ชื่อสัตว์เลี้ยง</th><th>ห้องพัก</th>' +
+      '<th>วันเข้า</th><th>วันออก</th>' +
+      (isCompleted ? '<th>ระยะเวลา</th><th>ใบเสร็จ</th>' : '') + '</tr></thead><tbody>' +
+      rows.map(function(item) {
+        var petLabels = item.petLabels && item.petLabels.length ? item.petLabels :
+          [(item.petNames && item.petNames[0] ? item.petNames[0] : '-') +
+            ' (' + (item.species === 'CAT' ? 'แมว' : 'สุนัข') + ')'];
+        return '<tr><td><button class="table-link" onclick="openBookingDetail(\'' + item.bookingId + '\')">' +
+          escapeHtml(item.bookingCode) + '</button></td>' +
+          '<td>' + escapeHtml(item.customerName) + '<br><small>' + escapeHtml(item.phone) + '</small></td>' +
+          '<td>' + petLabels.map(function(label) {
+            return '<span class="operation-pet-line">' + escapeHtml(label) + '</span>';
+          }).join('') + '</td>' +
+          '<td>' + escapeHtml(item.roomId || 'ยังไม่กำหนด') + '</td>' +
+          '<td>' + escapeHtml(formatDateDisplay(item.checkInDate)) + '</td>' +
+          '<td>' + escapeHtml(formatDateDisplay(item.checkOutDate)) + '</td>' +
+          (isCompleted ? '<td>' + escapeHtml(boardingDurationLabel(item)) + '</td>' +
+            '<td><button type="button" class="icon-btn receipt-print-button" ' +
+            'onclick="printReceipt(\'' + item.bookingId + '\')" aria-label="พิมพ์ใบเสร็จ" title="พิมพ์ใบเสร็จ">' +
+            iconMarkup('printer') + '</button></td>' : '') + '</tr>';
+      }).join('') + '</tbody></table></div>';
+  }
+
+  async function rejectCurrent(bookingId) {
+    var reason = prompt('เหตุผลที่ไม่อนุมัติ');
+    if (reason === null) return;
+    try {
+      await gasCall('rejectBooking', adminState.token, bookingId, reason);
+      closeModal(); showToast('ไม่อนุมัติและคืนห้องแล้ว'); await bootstrapAdmin();
+    } catch (error) { showToast(error.message, true); }
+  }
+
+  async function verifyCurrent(bookingId, paymentId) {
+    if (!confirm('ยืนยันว่าตรวจยอดและหลักฐานการโอนแล้ว?')) return;
+    var accountName = prompt('ชื่อบัญชีต้นทางตามหลักฐานการโอน');
+    if (!accountName) return;
+    var accountNumber = prompt('เลขบัญชีต้นทาง (ระบบจะเก็บแบบปิดบัง)');
+    if (!accountNumber) return;
+    try {
+      await gasCall('verifyDeposit', adminState.token, bookingId, paymentId, {
+        accountName: accountName,
+        accountNumber: accountNumber
+      });
+      closeModal(); showToast('ยืนยันมัดจำและการจองแล้ว'); await bootstrapAdmin();
+    } catch (error) { showToast(error.message, true); }
+  }
+
+  function renderRooms() {
+    renderRoomGroup('CAT', 'cat-rooms-grid', 'cat-room-date', 'cat-room-date-label');
+    renderRoomGroup('DOG', 'dog-rooms-grid', 'dog-room-date', 'dog-room-date-label');
+  }
+
+  function renderRoomGroup(species, gridId, dateInputId, dateLabelId) {
+    document.getElementById(gridId).innerHTML = adminState.rooms.filter(function(room) {
+      return room.species === species;
+    }).map(function(room) {
+      var stateClass = String(room.displayState || 'UNAVAILABLE').toLowerCase();
+      var hasBooking = Boolean(room.bookingId);
+      var petIcon = hasBooking ?
+        '<span class="room-species-icon" aria-label="' + (room.species === 'CAT' ? 'แมว' : 'สุนัข') + '">' +
+          iconMarkup(room.species === 'CAT' ? 'cat' : 'dog') + '</span>' : '';
+      var petNames = (room.petNames || []).map(function(name) {
+        return '<span class="room-pet-name">น้อง ' + escapeHtml(name) + '</span>';
+      }).join('');
+      var actionLabel = room.displayState === 'AVAILABLE' ?
+        'จอง ' + room.roomId + ' วันที่ ' + formatDateDisplay(adminState.roomDate) :
+        'ดูรายละเอียด ' + room.roomId;
+      return '<button type="button" class="card room-card room-' + stateClass +
+        '" onclick="openRoomCard(\'' + room.roomId + '\')" aria-label="' + escapeHtml(actionLabel) + '">' +
+        '<span class="room-card-top"><span class="hint">' +
+        (room.species === 'CAT' ? 'ห้องพักแมว' : 'ห้องพักสุนัข') + '</span>' + petIcon + '</span>' +
+        '<strong class="room-id">' + escapeHtml(room.roomId) + '</strong>' +
+        '<span class="status">' + escapeHtml(room.displayLabel || room.status) + '</span>' +
+        (petNames ? '<span class="room-pet-names" aria-label="ชื่อสัตว์เลี้ยง">' + petNames + '</span>' : '') +
+        (room.bookingCode ? '<small class="room-booking-code">' + escapeHtml(room.bookingCode) + '</small>' : '') +
+        '</button>';
+    }).join('');
+    document.getElementById(dateInputId).value = adminState.roomDate || '';
+    document.getElementById(dateLabelId).textContent = formatThaiLongDate(adminState.roomDate);
+  }
+
+  async function loadRoomsForDate(date) {
+    if (!date) return;
+    try {
+      adminState.rooms = await gasCall('listRooms', adminState.token, date);
+      adminState.roomDate = date;
+      renderRooms();
+    } catch (error) { showToast(error.message, true); }
+  }
+
+  function openRoomCard(roomId) {
+    var room = adminState.rooms.filter(function(item) { return item.roomId === roomId; })[0];
+    if (!room) return;
+    if (room.displayState === 'AVAILABLE') {
+      showStaffBookingModal({
+        preferredRoomId: room.roomId,
+        species: room.species,
+        checkInDate: adminState.roomDate
+      });
+      return;
+    }
+    if (room.bookingId) {
+      openBookingDetail(room.bookingId);
+      return;
+    }
+    showRoomStatusModal(room);
+  }
+
+  function showRoomStatusModal(room) {
+    var canManage = adminState.permissions.indexOf('room:manage') !== -1;
+    var form = canManage ?
+      '<div class="field"><label for="room-status-select">สถานะห้อง</label><select id="room-status-select">' +
+        [['AVAILABLE','ว่าง'],['CLEANING','กำลังทำความสะอาด'],['MAINTENANCE','ปิดซ่อมบำรุง'],['DISABLED','ปิดใช้งาน']]
+          .map(function(item) { return '<option value="' + item[0] + '"' + (room.status === item[0] ? ' selected' : '') + '>' + item[1] + '</option>'; }).join('') +
+        '</select></div><div class="field"><label for="room-notes">หมายเหตุ</label><textarea id="room-notes">' + escapeHtml(room.notes || '') + '</textarea></div>' +
+        '<div class="actions"><button class="btn btn-primary" onclick="updateRoomFromCard(\'' + room.roomId + '\')">บันทึกสถานะ</button></div>' : '';
+    showModal('<div class="modal-head"><div><p class="eyebrow">' + (room.species === 'CAT' ? 'ห้องพักแมว' : 'ห้องพักสุนัข') + '</p><h2>' + escapeHtml(room.roomName || room.roomId) +
+      '</h2></div><button class="icon-btn" onclick="closeModal()" aria-label="ปิด">' + iconMarkup('close') + '</button></div>' +
+      '<p><span class="status">' + escapeHtml(room.displayLabel) + '</span></p>' + form);
+  }
+
+  async function updateRoomFromCard(roomId) {
+    try {
+      await gasCall('updateRoom', adminState.token, roomId, {
+        status: document.getElementById('room-status-select').value,
+        notes: document.getElementById('room-notes').value
+      });
+      closeModal();
+      showToast('บันทึกสถานะห้องแล้ว');
+      await loadRoomsForDate(adminState.roomDate);
+    } catch (error) { showToast(error.message, true); }
+  }
+
+  function addDaysIso(isoDate, days) {
+    var parts = toCanonicalDate(isoDate).split('-').map(Number);
+    var date = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
+    date.setUTCDate(date.getUTCDate() + days);
+    return date.toISOString().slice(0, 10);
+  }
+
+  function formatThaiLongDate(isoDate) {
+    if (!isoDate) return '';
+    var canonical = toCanonicalDate(isoDate);
+    var parts = canonical.split('-').map(Number);
+    var weekday = new Intl.DateTimeFormat('th-TH', {
+      weekday: 'long', timeZone: 'UTC'
+    }).format(new Date(Date.UTC(parts[0], parts[1] - 1, parts[2])));
+    return weekday + ' ' + formatDateDisplay(canonical);
+  }
+
+  async function loadSterilizations() {
+    try {
+      adminState.sterilizations = await gasCall(
+        'listSterilizationAppointments',
+        adminState.token,
+        {}
+      );
+      renderSterilizations();
+    } catch (error) {
+      showToast(error.message, true);
+    }
+  }
+
+  function filteredSterilizations() {
+    var search = document.getElementById('sterilization-search').value.toLowerCase();
+    var dateValue = document.getElementById('sterilization-date-filter').value;
+    var date = dateValue ? toCanonicalDate(dateValue) : '';
+    var status = document.getElementById('sterilization-status-filter').value;
+    return adminState.sterilizations.filter(function(item) {
+      if (date && item.appointmentDate !== date) return false;
+      if (status && item.status !== status) return false;
+      if (search && [
+        item.appointmentCode,
+        item.customerName,
+        item.phone,
+        item.petName
+      ].join(' ').toLowerCase().indexOf(search) === -1) return false;
+      return true;
+    });
+  }
+
+  function renderSterilizations() {
+    var target = document.getElementById('sterilization-list');
+    var rows = filteredSterilizations();
+    if (!rows.length) {
+      target.innerHTML = '<div class="card empty">ยังไม่พบรายการนัดตามตัวกรอง</div>';
+      return;
+    }
+    target.innerHTML =
+      '<div class="data-table-wrap"><table><thead><tr><th>รหัส</th><th>วันและเวลา</th>' +
+      '<th>ผู้จอง</th><th>สัตว์</th><th>สถานะ</th></tr></thead><tbody>' +
+      rows.map(function(item) {
+        return '<tr><td><strong>' + escapeHtml(item.appointmentCode) + '</strong><br><small>' +
+          escapeHtml(item.sourceChannel) + '</small></td><td>' +
+          escapeHtml(formatDateDisplay(item.appointmentDate)) + '<br><small>' + escapeHtml(item.appointmentTime) +
+          ' น.</small></td><td>' + escapeHtml(item.customerName) + '<br><small>' +
+          escapeHtml(item.phone) + '</small></td><td><strong>' + escapeHtml(item.petName) +
+          '</strong><br><small>' + escapeHtml([item.species, item.sex, item.ageText, item.vaccinationStatus].filter(Boolean).join(' · ') || 'ยังไม่ระบุ') +
+          '</small></td><td><select class="status-select" aria-label="เปลี่ยนสถานะนัด ' +
+          escapeHtml(item.appointmentCode) + '" onchange="changeSterilizationStatus(\'' +
+          item.appointmentId + '\',this)">' + sterilizationStatusOptions(item.status) +
+          '</select></td></tr>';
+      }).join('') + '</tbody></table></div>';
+  }
+
+  function sterilizationStatusOptions(selected) {
+    var statuses = [
+      ['PENDING_CONFIRMATION', 'รอยืนยันนัด'],
+      ['CONFIRMED', 'ยืนยันนัดแล้ว'],
+      ['ARRIVED', 'มาถึงคลินิกแล้ว'],
+      ['COMPLETED', 'ดำเนินการเสร็จแล้ว'],
+      ['CANCELLED', 'ยกเลิก'],
+      ['NO_SHOW', 'ไม่มาตามนัด']
+    ];
+    return statuses.map(function(item) {
+      return '<option value="' + item[0] + '"' +
+        (selected === item[0] ? ' selected' : '') + '>' + item[1] + '</option>';
+    }).join('');
+  }
+
+  async function changeSterilizationStatus(appointmentId, select) {
+    var previous = adminState.sterilizations.filter(function(item) {
+      return item.appointmentId === appointmentId;
+    })[0];
+    try {
+      select.disabled = true;
+      await gasCall(
+        'updateSterilizationAppointmentStatus',
+        adminState.token,
+        appointmentId,
+        select.value
+      );
+      showToast('เปลี่ยนสถานะนัดแล้ว');
+      await loadSterilizations();
+      await loadSterilizationCalendar();
+    } catch (error) {
+      if (previous) select.value = previous.status;
+      showToast(error.message, true);
+    } finally {
+      select.disabled = false;
+    }
+  }
+
+  async function loadSterilizationCalendar() {
+    var target = document.getElementById('sterilization-calendar');
+    var month = document.getElementById('sterilization-month').value || currentMonthIso();
+    target.innerHTML = '<div class="card empty"><span class="loading"></span> กำลังโหลดปฏิทิน</div>';
+    try {
+      var data = await gasCall('getSterilizationCalendar', adminState.token, month);
+      adminState.sterilizationCalendar = data;
+      renderSterilizationCalendar(data);
+    } catch (error) {
+      target.innerHTML = '<div class="notice danger">' + escapeHtml(error.message) + '</div>';
+    }
+  }
+
+  function renderSterilizationCalendar(data) {
+    var parts = data.month.split('-').map(Number);
+    var year = parts[0];
+    var monthIndex = parts[1] - 1;
+    var firstDay = new Date(year, monthIndex, 1).getDay();
+    var daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+    var dayByDate = {};
+    data.days.forEach(function(day) { dayByDate[day.date] = day; });
+    var cells = [];
+    for (var blank = 0; blank < firstDay; blank += 1) {
+      cells.push('<div class="calendar-day muted" aria-hidden="true"></div>');
+    }
+    for (var dayNumber = 1; dayNumber <= daysInMonth; dayNumber += 1) {
+      var iso = data.month + '-' + String(dayNumber).padStart(2, '0');
+      var dayData = dayByDate[iso] || {
+        count: 0,
+        appointments: [],
+        holiday: false,
+        holidayReason: ''
+      };
+      var used = Number(dayData.count || 0);
+      var fullClass = used > data.capacity ? ' over-capacity' :
+        (used === data.capacity ? ' full' : (dayData.holiday ? ' holiday' : ''));
+      var availabilityLabel = used > data.capacity ? 'เกินคิว ' + (used - data.capacity) :
+        (used === data.capacity ? 'คิวเต็ม' :
+          (dayData.holiday ? 'วันหยุด' +
+            (dayData.holidayReason ? ' · ' + dayData.holidayReason : '') :
+            'ว่าง ' + (data.capacity - used)));
+      var petLinks = (dayData.appointments || []).map(function(item) {
+        var prefix = item.species === 'แมว' ? 'F' : (item.species === 'สุนัข' ? 'C' : 'O');
+        var sexLabel = item.sex === 'ผู้' ? 'ผู้' : (item.sex === 'เมีย' ? 'เมีย' : item.sex);
+        return '<span class="calendar-pet-link" role="button" tabindex="0" onclick="event.stopPropagation();openSterilizationDetail(\'' +
+          item.appointmentId + '\')">' + escapeHtml(prefix + '-' + item.petName + '/' + sexLabel) + '</span>';
+      }).join('');
+      cells.push(
+        '<div class="calendar-day' + fullClass + '" role="button" tabindex="0"' +
+        ' onclick="openSterilizationDay(\'' + iso + '\')"' +
+        ' onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();openSterilizationDay(\'' + iso + '\')}"><strong>' +
+        dayNumber + '</strong><span>' + used + '/' + data.capacity +
+        ' ตัว</span><small>' + escapeHtml(availabilityLabel) +
+        '</small>' + petLinks + '</div>'
+      );
+    }
+    document.getElementById('sterilization-calendar').innerHTML =
+      '<div class="calendar-card card"><div class="calendar-title">' +
+      new Date(year, monthIndex, 1).toLocaleDateString('th-TH', {
+        month: 'long',
+        year: 'numeric'
+      }) + '</div><div class="calendar-weekdays">' +
+      ['อา','จ','อ','พ','พฤ','ศ','ส'].map(function(day) {
+        return '<span>' + day + '</span>';
+      }).join('') + '</div><div class="calendar-grid">' + cells.join('') + '</div></div>';
+  }
+
+  function openSterilizationDay(dateValue) {
+    document.getElementById('sterilization-date-filter').value = dateValue;
+    showView('sterilization-list');
+  }
+
+  function openSterilizationDetail(appointmentId) {
+    var item = adminState.sterilizations.filter(function(row) { return row.appointmentId === appointmentId; })[0];
+    if (!item) {
+      loadSterilizations().then(function() { openSterilizationDetail(appointmentId); });
+      return;
+    }
+    showModal('<div class="modal-head"><div><p class="eyebrow">รายละเอียดนัดทำหมัน</p><h2>' + escapeHtml(item.petName) +
+      '</h2></div><button class="icon-btn" onclick="closeModal()" aria-label="ปิด">' + iconMarkup('close') + '</button></div>' +
+      '<div class="detail-grid" style="margin-top:18px">' + detailItem('รหัสนัด', item.appointmentCode) +
+      detailItem('เจ้าของ', item.customerName + ' · ' + item.phone) + detailItem('วันและเวลา', formatDateDisplay(item.appointmentDate) + ' ' + item.appointmentTime) +
+      detailItem('ชนิด/เพศ', [item.species, item.sex].filter(Boolean).join(' · ')) + detailItem('พันธุ์', item.breed || '-') +
+      detailItem('อายุ', item.ageText || '-') + detailItem('น้ำหนัก', item.weightKg ? item.weightKg + ' กก.' : '-') +
+      detailItem('วัคซีน', item.vaccinationStatus || '-') + detailItem('สถานะ', item.statusLabel) +
+      '</div><div class="notice" style="margin-top:16px">' + escapeHtml(item.notes || 'ไม่มีหมายเหตุ') + '</div>');
+  }
+
+  function currentMonthIso() {
+    var today = new Date();
+    return today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0');
+  }
+
+  function currentDateIso() {
+    var today = new Date();
+    return today.getFullYear() + '-' +
+      String(today.getMonth() + 1).padStart(2, '0') + '-' +
+      String(today.getDate()).padStart(2, '0');
+  }
+
+  function showSterilizationModal(dateValue) {
+    showModal(
+      '<div class="modal-head"><div><p class="eyebrow">รับจองโดยพนักงาน</p>' +
+      '<h2>นัดผ่าตัดทำหมัน</h2></div><button class="icon-btn" onclick="closeModal()" aria-label="ปิด">' + iconMarkup('close') + '</button></div>' +
+      '<div class="notice">โควตาปกติ 4 ตัวต่อวัน สามารถเพิ่มคิวเกินโควตาได้ ส่วนวันหยุดอนุญาตให้รับจองแบบยกเว้นเฉพาะเจ้าของหรือหมอ</div>' +
+      '<form onsubmit="submitSterilizationAppointment(event)"><div class="form-grid">' +
+      '<div class="field"><label>วันที่นัด</label><input id="ster-date" type="date" required></div>' +
+      '<div class="field"><label>เวลานัด</label><input id="ster-time" type="time" value="09:00" required></div>' +
+      '<div class="field"><label>ชื่อผู้จอง</label><input id="ster-customer" required></div>' +
+      '<div class="field"><label>เบอร์โทร</label><input id="ster-phone" required></div>' +
+      '<div class="field"><label>ชื่อสัตว์</label><input id="ster-pet" required></div>' +
+      '<div class="field"><label>ช่องทาง</label><select id="ster-channel">' +
+      '<option value="PHONE">โทรศัพท์</option><option value="WALK_IN">Walk-in</option>' +
+      '<option value="FACEBOOK">Facebook</option><option value="OTHER">อื่น ๆ</option></select></div>' +
+      '<div class="field"><label>ชนิดสัตว์</label><select id="ster-species-category" required ' +
+      'onchange="toggleSterilizationOtherSpecies()"><option value="">เลือกชนิดสัตว์</option>' +
+      '<option value="DOG">สุนัข</option><option value="CAT">แมว</option>' +
+      '<option value="OTHER">อื่น ๆ</option></select></div>' +
+      '<div class="field"><label>เพศ</label><select id="ster-sex" required>' +
+      '<option value="">เลือกเพศ</option><option value="MALE">ผู้</option>' +
+      '<option value="FEMALE">เมีย</option></select></div>' +
+      '<div class="field span-2" id="ster-species-other-field" hidden>' +
+      '<label>ระบุชนิดสัตว์เพิ่มเติม</label><input id="ster-species-other" maxlength="50"></div>' +
+      '<div class="field"><label>พันธุ์</label><input id="ster-breed"></div>' +
+      '<div class="field"><label>น้ำหนัก (กก.)</label><input id="ster-weight" type="number" min="0.1" step="0.1"></div>' +
+      '<div class="field"><label>อายุ</label><input id="ster-age" placeholder="เช่น 8 เดือน หรือ 2 ปี"></div>' +
+      '<div class="field"><label>วัคซีน</label><input id="ster-vaccination" placeholder="เช่น ครบตามกำหนด หรือยังไม่ครบ"></div>' +
+      '<div class="field span-2"><label>หมายเหตุ</label><textarea id="ster-notes"></textarea></div>' +
+      '</div><div class="actions"><button class="btn btn-primary">บันทึกนัด</button></div></form>'
+    );
+    document.getElementById('ster-date').value =
+      dateValue || document.getElementById('sterilization-date-filter').value || currentDateIso();
+  }
+
+  function toggleSterilizationOtherSpecies() {
+    var category = document.getElementById('ster-species-category').value;
+    var field = document.getElementById('ster-species-other-field');
+    var input = document.getElementById('ster-species-other');
+    var isOther = category === 'OTHER';
+    field.hidden = !isOther;
+    input.required = isOther;
+    if (!isOther) input.value = '';
+  }
+
+  async function submitSterilizationAppointment(event) {
+    event.preventDefault();
+    var button = event.submitter;
+    setBusy(button, true);
+    var payload = {
+          appointmentDate: toCanonicalDate(document.getElementById('ster-date').value),
+          appointmentTime: document.getElementById('ster-time').value,
+          customerName: document.getElementById('ster-customer').value,
+          phone: document.getElementById('ster-phone').value,
+          petName: document.getElementById('ster-pet').value,
+          sourceChannel: document.getElementById('ster-channel').value,
+          speciesCategory: document.getElementById('ster-species-category').value,
+          speciesOther: document.getElementById('ster-species-other').value,
+          sex: document.getElementById('ster-sex').value,
+          breed: document.getElementById('ster-breed').value,
+          weightKg: document.getElementById('ster-weight').value,
+          ageText: document.getElementById('ster-age').value,
+          vaccinationStatus: document.getElementById('ster-vaccination').value,
+          notes: document.getElementById('ster-notes').value,
+          holidayOverride: false
+        };
+    try {
+      var result;
+      try {
+        result = await gasCall('createSterilizationAppointment', adminState.token, payload);
+      } catch (error) {
+        var isHoliday = String(error.message || '').indexOf('[STERILIZATION_HOLIDAY]') !== -1;
+        var canOverride = adminState.permissions.indexOf('sterilization:holiday') !== -1;
+        if (!isHoliday || !canOverride) throw error;
+        var message = String(error.message || '').replace('[STERILIZATION_HOLIDAY]', '').trim();
+        if (!confirm(message + '\n\nต้องการรับจองแบบยกเว้นในวันหยุดหรือไม่?')) return;
+        payload.holidayOverride = true;
+        result = await gasCall('createSterilizationAppointment', adminState.token, payload);
+      }
+      closeModal();
+      showToast('สร้างนัด ' + result.appointmentCode + ' แล้ว เหลือ ' + result.remaining + ' คิว');
+      await loadSterilizations();
+      await loadSterilizationCalendar();
+      showView('sterilization-list');
+    } catch (error) {
+      showToast(error.message, true);
+    } finally {
+      setBusy(button, false, 'บันทึกนัด');
+    }
+  }
+
+  async function showSterilizationHolidayModal() {
+    if (adminState.permissions.indexOf('sterilization:holiday') === -1) {
+      return showToast('เฉพาะเจ้าของหรือหมอเท่านั้นที่ตั้งวันหยุดทำหมันได้', true);
+    }
+    var month = document.getElementById('sterilization-month').value || currentMonthIso();
+    showModal('<div class="modal-head"><div><p class="eyebrow">ปฏิทินคิวทำหมัน</p>' +
+      '<h2>กำหนดวันหยุด</h2></div><button class="icon-btn" onclick="closeModal()" aria-label="ปิด">' +
+      iconMarkup('close') + '</button></div><div class="card empty"><span class="loading"></span> กำลังโหลดวันหยุด</div>');
+    try {
+      var holidays = await gasCall('listSterilizationHolidays', adminState.token, month);
+      renderSterilizationHolidayModal(month, holidays);
+    } catch (error) {
+      closeModal();
+      showToast(error.message, true);
+    }
+  }
+
+  function renderSterilizationHolidayModal(month, holidays) {
+    var holidayRows = holidays.length ? holidays.map(function(item) {
+      return '<div class="holiday-row"><div><strong>' + formatDateDisplay(item.holidayDate) +
+        '</strong><small>' + escapeHtml(item.reason || 'วันหยุด') + '</small></div>' +
+        '<div class="actions"><button type="button" class="btn btn-secondary" onclick="closeModal();showSterilizationModal(\'' +
+        item.holidayDate + '\')">รับจองแบบยกเว้น</button>' +
+        '<button type="button" class="btn btn-danger" onclick="removeSterilizationHolidayFromUi(\'' +
+        item.holidayId + '\')">ลบ</button></div></div>';
+    }).join('') : '<div class="empty">เดือนนี้ยังไม่ได้กำหนดวันหยุด</div>';
+    showModal('<div class="modal-head"><div><p class="eyebrow">ปฏิทินคิวทำหมัน</p>' +
+      '<h2>กำหนดวันหยุด</h2></div><button class="icon-btn" onclick="closeModal()" aria-label="ปิด">' +
+      iconMarkup('close') + '</button></div>' +
+      '<div class="notice">วันหยุดจะแสดงเป็นสีชมพู เจ้าของหรือหมอยังรับจองแบบยกเว้นได้โดยต้องยืนยันทุกครั้ง</div>' +
+      '<form id="ster-holiday-form" class="holiday-add-form" onsubmit="submitSterilizationHoliday(event)">' +
+      '<div id="ster-holiday-entry-list">' + sterilizationHolidayEntryMarkup_(0, month, false) + '</div>' +
+      '<div class="actions holiday-add-actions"><button id="show-ster-holiday-form-btn" type="button" class="btn btn-secondary" ' +
+      'onclick="showSterilizationHolidayForm()">+ เพิ่มวันหยุด</button></div>' +
+      '<div class="actions" style="margin-top:12px"><button class="btn btn-primary">บันทึกวันหยุด</button></div></form>' +
+      '<div class="holiday-list" style="margin-top:20px">' + holidayRows + '</div>');
+  }
+
+  function sterilizationHolidayEntryMarkup_(index, month, removable) {
+    var removeButton = removable
+      ? '<button type="button" class="btn btn-light" onclick="removeSterilizationHolidayEntry(this)">ลบช่องนี้</button>'
+      : '';
+    var dateValue = index === 0 ? ' value="' + month + '-01"' : '';
+    return '<div class="ster-holiday-entry" data-entry-index="' + index + '"' +
+      (index ? ' style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)"' : '') + '>' +
+      '<div class="form-grid">' +
+      '<div class="field"><label>วันที่หยุด</label><input class="ster-holiday-date" type="date" min="' +
+      month + '-01"' + dateValue + ' required></div>' +
+      '<div class="field"><label>เหตุผล</label><input class="ster-holiday-reason" maxlength="120" ' +
+      'placeholder="เช่น หมอไม่อยู่" required></div></div>' +
+      (removeButton ? '<div class="actions" style="margin-top:8px">' + removeButton + '</div>' : '') +
+      '</div>';
+  }
+
+  function showSterilizationHolidayForm() {
+    var list = document.getElementById('ster-holiday-entry-list');
+    if (!list) return;
+    var month = document.getElementById('sterilization-month').value || currentMonthIso();
+    var index = list.querySelectorAll('.ster-holiday-entry').length;
+    list.insertAdjacentHTML('beforeend', sterilizationHolidayEntryMarkup_(index, month, true));
+    var entries = list.querySelectorAll('.ster-holiday-entry');
+    var newEntry = entries[entries.length - 1];
+    var dateInput = newEntry ? newEntry.querySelector('.ster-holiday-date') : null;
+    if (dateInput) dateInput.focus();
+  }
+
+  function removeSterilizationHolidayEntry(button) {
+    var entry = button.closest('.ster-holiday-entry');
+    if (entry) entry.remove();
+  }
+
+  async function submitSterilizationHoliday(event) {
+    event.preventDefault();
+    var button = event.submitter;
+    var month = document.getElementById('sterilization-month').value || currentMonthIso();
+    var entries = Array.prototype.slice.call(document.querySelectorAll(
+      '#ster-holiday-entry-list .ster-holiday-entry'
+    ));
+    var payloads = [];
+    var usedDates = {};
+
+    for (var i = 0; i < entries.length; i += 1) {
+      var dateInput = entries[i].querySelector('.ster-holiday-date');
+      var reasonInput = entries[i].querySelector('.ster-holiday-reason');
+      var rawDate = dateInput ? dateInput.value : '';
+      var reason = reasonInput ? reasonInput.value.trim() : '';
+      if (!rawDate || !reason) {
+        showToast('กรุณากรอกวันที่หยุดและเหตุผลให้ครบทุกช่อง', true);
+        if (!rawDate && dateInput) dateInput.focus();
+        else if (reasonInput) reasonInput.focus();
+        return;
+      }
+      var holidayDate = toCanonicalDate(rawDate);
+      if (usedDates[holidayDate]) {
+        showToast('มีวันที่หยุด ' + formatDateDisplay(holidayDate) + ' ซ้ำกัน', true);
+        if (dateInput) dateInput.focus();
+        return;
+      }
+      usedDates[holidayDate] = true;
+      payloads.push({ holidayDate: holidayDate, reason: reason });
+    }
+
+    if (!payloads.length) {
+      showToast('กรุณาเพิ่มวันหยุดอย่างน้อย 1 วัน', true);
+      return;
+    }
+
+    setBusy(button, true);
+    try {
+      for (var j = 0; j < payloads.length; j += 1) {
+        await gasCall('saveSterilizationHoliday', adminState.token, payloads[j]);
+      }
+      showToast('บันทึกวันหยุดทำหมันแล้ว ' + payloads.length + ' วัน');
+      await loadSterilizationCalendar();
+      var holidays = await gasCall('listSterilizationHolidays', adminState.token, month);
+      renderSterilizationHolidayModal(month, holidays);
+    } catch (error) {
+      showToast(error.message, true);
+      setBusy(button, false, 'บันทึกวันหยุด');
+    }
+  }
+
+  async function removeSterilizationHolidayFromUi(holidayId) {
+    if (!confirm('ต้องการลบวันหยุดนี้ใช่หรือไม่?')) return;
+    var month = document.getElementById('sterilization-month').value || currentMonthIso();
+    try {
+      await gasCall('removeSterilizationHoliday', adminState.token, holidayId);
+      showToast('ลบวันหยุดทำหมันแล้ว');
+      await loadSterilizationCalendar();
+      var holidays = await gasCall('listSterilizationHolidays', adminState.token, month);
+      renderSterilizationHolidayModal(month, holidays);
+    } catch (error) {
+      showToast(error.message, true);
+    }
+  }
+
+  async function loadUsers() {
+    var target = document.getElementById('users-content');
+    if (adminState.permissions.indexOf('user:manage') === -1) {
+      target.innerHTML = '<div class="empty">บัญชีของคุณไม่มีสิทธิ์จัดการผู้ใช้งาน</div>';
+      return;
+    }
+    try {
+      var users = await gasCall('listUsers', adminState.token);
+      target.innerHTML = '<div class="data-table-wrap"><table><thead><tr><th>ชื่อผู้ใช้</th><th>ชื่อที่แสดง</th><th>บทบาท</th><th>สถานะ</th></tr></thead><tbody>' +
+        users.map(function(user) {
+          return '<tr><td>' + escapeHtml(user.username) + '</td><td>' + escapeHtml(user.displayName) +
+            '</td><td>' + roleLabel(user.role) + '</td><td>' + (user.active ? 'ใช้งาน' : 'ปิดใช้งาน') + '</td></tr>';
+        }).join('') + '</tbody></table></div>';
+    } catch (error) { target.innerHTML = '<div class="notice danger">' + escapeHtml(error.message) + '</div>'; }
+  }
+
+  function showNewUserModal() {
+    if (adminState.permissions.indexOf('user:manage') === -1) {
+      return showToast('บัญชีของคุณไม่มีสิทธิ์สร้างผู้ใช้', true);
+    }
+    showModal('<div class="modal-head"><h2>เพิ่มผู้ใช้งาน</h2><button class="icon-btn" onclick="closeModal()" aria-label="ปิด">' + iconMarkup('close') + '</button></div>' +
+      '<form onsubmit="submitNewUser(event)"><div class="form-grid" style="margin-top:18px">' +
+      '<div class="field"><label>ชื่อผู้ใช้</label><input id="new-username" pattern="[a-z0-9._-]{4,40}" required></div>' +
+      '<div class="field"><label>ชื่อที่แสดง</label><input id="new-display-name" required></div>' +
+      '<div class="field"><label>บทบาท</label><select id="new-role"><option value="STAFF">พนักงาน</option><option value="DOCTOR">หมอ</option><option value="OWNER">เจ้าของ</option></select></div>' +
+      '<div class="field"><label>รหัสผ่านชั่วคราว</label><input id="new-password" type="password" minlength="10" required><span class="hint">อย่างน้อย 10 ตัว มีตัวใหญ่ ตัวเล็ก ตัวเลข และอักขระพิเศษ</span></div>' +
+      '</div><div class="actions"><button class="btn btn-primary">สร้างผู้ใช้</button></div></form>');
+  }
+
+  async function submitNewUser(event) {
+    event.preventDefault();
+    var button = event.submitter;
+    setBusy(button, true);
+    try {
+      await gasCall('createUser', adminState.token, {
+        username: document.getElementById('new-username').value,
+        displayName: document.getElementById('new-display-name').value,
+        role: document.getElementById('new-role').value,
+        password: document.getElementById('new-password').value,
+        mustChangePassword: true
+      });
+      closeModal(); showToast('สร้างผู้ใช้แล้ว'); await loadUsers();
+    } catch (error) { showToast(error.message, true); }
+    finally { setBusy(button, false, 'สร้างผู้ใช้'); }
+  }
+
+  async function loadSettings() {
+    var target = document.getElementById('settings-content');
+    if (adminState.permissions.indexOf('settings:manage') === -1) {
+      target.innerHTML = '<div class="card empty">บัญชีของคุณไม่มีสิทธิ์แก้ไขการตั้งค่า</div>';
+      return;
+    }
+    try {
+      var s = await gasCall('getAdminSettings', adminState.token);
+      target.innerHTML =
+        '<form class="card" onsubmit="saveSettings(event)"><h3>ข้อมูลสถานบริการ</h3><div class="form-grid">' +
+        settingField('settings-clinic-name-th','ชื่อสถานบริการภาษาไทย',s.clinicNameTh) +
+        settingField('settings-clinic-name-en','ชื่อสถานบริการภาษาอังกฤษ',s.clinicNameEn) +
+        settingField('settings-clinic-phone','หมายเลขโทรศัพท์',s.clinicPhone) +
+        settingField('settings-bank','ธนาคาร',s.bankName) +
+        settingField('settings-account-name','ชื่อบัญชี',s.bankAccountName) +
+        settingField('settings-account-number','เลขบัญชี',s.bankAccountNumber) +
+        settingField('settings-qr-url','URL รูป QR PromptPay',s.promptPayQrUrl) +
+        settingField('settings-line-url','URL LINE OA',s.lineOaUrl) +
+        settingField('settings-facebook-url','URL Facebook',s.facebookUrl) +
+        '</div><div class="actions"><button class="btn btn-primary">บันทึกการตั้งค่า</button></div></form>' +
+        '<form class="card" onsubmit="uploadClinicLogoForm(event)"><h3>โลโก้สถานบริการ</h3>' +
+        '<div class="logo-settings-grid"><div class="clinic-logo-preview"><div class="brand-mark" data-brand-logo aria-hidden="true">🐾</div></div>' +
+        '<div class="field"><label for="settings-logo-file">อัปโหลดรูปภาพโลโก้</label>' +
+        '<input id="settings-logo-file" type="file" accept="image/jpeg,image/png,image/webp" required>' +
+        '<span class="hint">รองรับ JPG, PNG หรือ WEBP ขนาดไม่เกิน 1 MB แนะนำรูปสี่เหลี่ยมจัตุรัส</span></div></div>' +
+        '<div class="actions"><button class="btn btn-primary">อัปโหลดโลโก้</button></div></form>' +
+        '<form class="card" onsubmit="saveLineSettings(event)"><h3>LINE Messaging API / LIFF</h3>' +
+        '<div class="notice warning">Channel Access Token เป็นความลับ ระบบจะเก็บใน Script Properties และไม่แสดงกลับหน้าเว็บ</div>' +
+        '<div class="form-grid">' +
+        settingField('settings-line-channel-id','LINE Login Channel ID','') +
+        settingField('settings-liff-id','LIFF ID',s.liffId) +
+        '<div class="field span-2"><label>Messaging API Channel Access Token</label><input id="settings-line-token" type="password" autocomplete="new-password"></div>' +
+        '</div><div class="actions"><button class="btn btn-primary">บันทึก LINE</button><span class="hint">สถานะปัจจุบัน: ' +
+        (s.lineConfigured ? 'ตั้งค่า Token แล้ว' : 'ยังไม่ตั้งค่า') + '</span></div></form>';
+      applyBranding(s);
+    } catch (error) {
+      target.innerHTML = '<div class="notice danger">' + escapeHtml(error.message) + '</div>';
+    }
+  }
+
+  function settingField(id, label, value) {
+    return '<div class="field"><label for="' + id + '">' + escapeHtml(label) + '</label><input id="' +
+      id + '" value="' + escapeHtml(value || '') + '"></div>';
+  }
+
+  async function saveSettings(event) {
+    event.preventDefault();
+    var button = event.submitter;
+    setBusy(button, true);
+    try {
+      await gasCall('updateAdminSettings', adminState.token, {
+        clinicNameTh: document.getElementById('settings-clinic-name-th').value,
+        clinicNameEn: document.getElementById('settings-clinic-name-en').value,
+        clinicPhone: document.getElementById('settings-clinic-phone').value,
+        bankName: document.getElementById('settings-bank').value,
+        bankAccountName: document.getElementById('settings-account-name').value,
+        bankAccountNumber: document.getElementById('settings-account-number').value,
+        promptPayQrUrl: document.getElementById('settings-qr-url').value,
+        lineOaUrl: document.getElementById('settings-line-url').value,
+        facebookUrl: document.getElementById('settings-facebook-url').value
+      });
+      showToast('บันทึกการตั้งค่าแล้ว');
+      await loadPublicBranding();
+    } catch (error) { showToast(error.message, true); }
+    finally { setBusy(button, false, 'บันทึกการตั้งค่า'); }
+  }
+
+  async function uploadClinicLogoForm(event) {
+    event.preventDefault();
+    var button = event.submitter;
+    setBusy(button, true);
+    try {
+      var file = document.getElementById('settings-logo-file').files[0];
+      var payload = await fileToPayload(file, 1 * 1024 * 1024, '1 MB');
+      await gasCall('uploadClinicLogo', adminState.token, payload);
+      showToast('อัปโหลดโลโก้เรียบร้อยแล้ว');
+      await loadSettings();
+      await loadPublicBranding();
+    } catch (error) { showToast(error.message, true); }
+    finally { setBusy(button, false, 'อัปโหลดโลโก้'); }
+  }
+
+  async function saveLineSettings(event) {
+    event.preventDefault();
+    var button = event.submitter;
+    setBusy(button, true);
+    try {
+      await gasCall('configureLineSecrets', adminState.token, {
+        channelId: document.getElementById('settings-line-channel-id').value,
+        liffId: document.getElementById('settings-liff-id').value,
+        channelAccessToken: document.getElementById('settings-line-token').value
+      });
+      showToast('บันทึก LINE แล้ว'); await loadSettings();
+    } catch (error) { showToast(error.message, true); }
+    finally { setBusy(button, false, 'บันทึก LINE'); }
+  }
+
+  function showChangePasswordModal() {
+    showModal('<div class="modal-head"><div><p class="eyebrow">ความปลอดภัย</p><h2>กรุณาเปลี่ยนรหัสผ่านชั่วคราว</h2></div></div>' +
+      '<form onsubmit="submitPasswordChange(event)"><div class="form-grid" style="margin-top:18px">' +
+      '<div class="field"><label>รหัสผ่านปัจจุบัน</label><input id="current-password" type="password" required></div>' +
+      '<div class="field"><label>รหัสผ่านใหม่</label><input id="new-my-password" type="password" minlength="10" required><span class="hint">อย่างน้อย 10 ตัว มีตัวใหญ่ ตัวเล็ก ตัวเลข และอักขระพิเศษ</span></div>' +
+      '</div><div class="actions"><button class="btn btn-primary">เปลี่ยนรหัสผ่าน</button></div></form>');
+  }
+
+  async function submitPasswordChange(event) {
+    event.preventDefault();
+    var button = event.submitter;
+    setBusy(button, true);
+    try {
+      await gasCall(
+        'changeMyPassword',
+        adminState.token,
+        document.getElementById('current-password').value,
+        document.getElementById('new-my-password').value
+      );
+      closeModal(); showToast('เปลี่ยนรหัสผ่านแล้ว กรุณาเข้าสู่ระบบใหม่');
+      await handleLogout();
+    } catch (error) { showToast(error.message, true); }
+    finally { setBusy(button, false, 'เปลี่ยนรหัสผ่าน'); }
+  }
+
+  function showStaffBookingModal(options) {
+    var opts = options && options.preferredRoomId ? options : {};
+    if (opts.preferredRoomId) return showStaffBookingForm(1, opts);
+    showModal('<div class="modal-head"><div><p class="eyebrow">ขั้นตอนที่ 1</p><h2>เลือกจำนวนห้องพัก</h2></div><button class="icon-btn" onclick="closeModal()" aria-label="ปิด">' + iconMarkup('close') + '</button></div>' +
+      '<div class="field" style="margin-top:18px"><label>จำนวนห้องพักที่ต้องการจอง</label><select id="staff-unit-count">' +
+      Array.from({length: 18}, function(_, index) { return '<option value="' + (index + 1) + '">' + (index + 1) + ' ห้อง</option>'; }).join('') +
+      '</select><span class="hint">ข้อมูลเจ้าของจะกรอกเพียงครั้งเดียว แล้วแยกสัตว์ตามแต่ละห้องพัก</span></div>' +
+      '<div class="actions"><button class="btn btn-primary" onclick="showStaffBookingForm(Number(document.getElementById(\'staff-unit-count\').value),{})">ถัดไป</button></div>');
+  }
+
+  function showStaffBookingForm(unitCount, options) {
+    var opts = options || {};
+    var preferredRoom = opts.preferredRoomId || '';
+    var unitPanels = [];
+    for (var index = 0; index < unitCount; index += 1) {
+      var species = index === 0 && opts.species ? opts.species : 'CAT';
+      unitPanels.push('<div class="pet-panel staff-unit" data-unit-index="' + index + '"><h4>ห้องพักลำดับที่ ' + (index + 1) +
+        (index === 0 && preferredRoom ? ' · ' + escapeHtml(preferredRoom) : '') + '</h4><input class="staff-preferred-room" type="hidden" value="' +
+        (index === 0 ? escapeHtml(preferredRoom) : '') + '"><div class="form-grid">' +
+        '<div class="field"><label>ประเภทสัตว์</label><select class="staff-unit-species" onchange="renderStaffUnitPets(this.closest(\'.staff-unit\'))">' +
+        '<option value="CAT"' + (species === 'CAT' ? ' selected' : '') + '>แมว</option><option value="DOG"' + (species === 'DOG' ? ' selected' : '') + '>สุนัข</option></select></div>' +
+        '<div class="field"><label>จำนวนสัตว์</label><select class="staff-unit-pet-count" onchange="renderStaffUnitPets(this.closest(\'.staff-unit\'))"><option value="1">1 ตัว</option><option value="2">2 ตัว</option></select></div>' +
+        '</div><div class="staff-unit-pets"></div></div>');
+    }
+    showModal('<div class="modal-head"><div><p class="eyebrow">รับจองโดยพนักงาน</p><h2>สร้างรายการหลังบ้าน</h2></div><button class="icon-btn" onclick="closeModal()" aria-label="ปิด">' + iconMarkup('close') + '</button></div>' +
+      '<div class="notice">รองรับ Facebook, โทรศัพท์, Walk-in และอื่น ๆ รายการค้างคืนจะกันห้องทันทีและอยู่สถานะรออนุมัติ</div>' +
+      '<form id="staff-booking-form" onsubmit="submitStaffBooking(event)"><div class="form-grid">' +
+      '<div class="field"><label>ช่องทาง</label><select id="staff-channel"><option value="PHONE">โทรศัพท์</option><option value="WALK_IN">Walk-in</option><option value="FACEBOOK">Facebook</option><option value="OTHER">อื่น ๆ</option></select></div>' +
+      '<div class="field"><label>ประเภทบริการ</label><select id="staff-type"' + (unitCount > 1 || preferredRoom ? ' disabled' : '') + '><option value="OVERNIGHT">พักค้างคืน</option><option value="DAYCARE">ฝากเช้า–รับเย็น</option><option value="EMERGENCY_OWN_CAGE">ฉุกเฉิน กรงเจ้าของ</option></select></div>' +
+      '<div class="field"><label>ชื่อผู้จอง</label><input id="staff-name" required></div><div class="field"><label>เบอร์โทร</label><input id="staff-phone" required></div>' +
+      '<div class="field"><label>วันเข้า (วัน-เดือน-ปี ค.ศ.)</label><input id="staff-checkin" type="date" required></div><div class="field"><label>วันออก (วัน-เดือน-ปี ค.ศ.)</label><input id="staff-checkout" type="date" required></div>' +
+      '<div class="field"><label>เวลาเข้า</label><input id="staff-timein" type="time" value="10:00" required></div><div class="field"><label>เวลาออก</label><input id="staff-timeout" type="time" value="17:00" required></div>' +
+      '</div><h3 style="margin-top:22px">ข้อมูลสัตว์แยกตามห้องพัก</h3>' + unitPanels.join('') +
+      '<div class="actions"><button class="btn btn-primary">สร้างรายการ</button></div></form>');
+    document.querySelectorAll('.staff-unit').forEach(renderStaffUnitPets);
+    if (preferredRoom) document.querySelector('.staff-unit-species').disabled = true;
+    if (opts.checkInDate) {
+      document.getElementById('staff-checkin').value = toCanonicalDate(opts.checkInDate);
+      document.getElementById('staff-checkout').value = addDaysIso(opts.checkInDate, 1);
+    }
+  }
+
+  function renderStaffUnitPets(unit) {
+    var count = Number(unit.querySelector('.staff-unit-pet-count').value);
+    var species = unit.querySelector('.staff-unit-species').value;
+    var fields = [];
+    for (var index = 0; index < count; index += 1) {
+      fields.push('<div class="form-grid" style="margin-top:12px"><div class="field"><label>ชื่อสัตว์ตัวที่ ' + (index + 1) +
+        '</label><input class="staff-pet-name" required></div><div class="field"><label>น้ำหนักตัวที่ ' + (index + 1) +
+        ' (กก.)' + (species === 'CAT' ? ' · ไม่บังคับ' : '') + '</label><input class="staff-pet-weight" type="number" min="0.1" step="0.1"' +
+        (species === 'DOG' ? ' required' : '') + '></div></div>');
+    }
+    unit.querySelector('.staff-unit-pets').innerHTML = fields.join('');
+  }
+
+  async function submitStaffBooking(event) {
+    event.preventDefault();
+    var button = event.submitter;
+    setBusy(button, true);
+    try {
+      var type = document.getElementById('staff-type').value;
+      var inDate = toCanonicalDate(document.getElementById('staff-checkin').value);
+      var outDate = type === 'OVERNIGHT' ?
+        toCanonicalDate(document.getElementById('staff-checkout').value) : inDate;
+      var units = Array.from(document.querySelectorAll('.staff-unit')).map(function(unit) {
+        var names = unit.querySelectorAll('.staff-pet-name');
+        var weights = unit.querySelectorAll('.staff-pet-weight');
+        return { species: unit.querySelector('.staff-unit-species').value,
+          preferredRoomId: unit.querySelector('.staff-preferred-room').value,
+          pets: Array.from(names).map(function(name, index) { return { name: name.value, weightKg: weights[index].value }; }) };
+      });
+      var shared = {
+        sourceChannel: document.getElementById('staff-channel').value,
+        bookingType: type,
+        customerName: document.getElementById('staff-name').value,
+        phone: document.getElementById('staff-phone').value,
+        checkInDate: inDate, checkOutDate: outDate,
+        checkInTime: document.getElementById('staff-timein').value,
+        checkOutTime: document.getElementById('staff-timeout').value,
+        fleaTickTreated: true, fleaTickFoundNow: false, foodOption: 'OWNER_FOOD'
+      };
+      var result;
+      if (type === 'OVERNIGHT') {
+        shared.units = units;
+        result = await gasCall('createStaffMultipleOvernightBookings', adminState.token, shared);
+        closeModal(); showToast('สร้าง ' + result.bookings.length + ' รายการแล้ว: ' + result.bookings.map(function(item) { return item.bookingCode; }).join(', '));
+      } else {
+        Object.assign(shared, units[0]);
+        result = await gasCall('createStaffBooking', adminState.token, shared);
+        closeModal(); showToast('สร้างรายการ ' + result.bookingCode + ' แล้ว');
+      }
+      await bootstrapAdmin();
+    } catch (error) { showToast(error.message, true); }
+    finally { setBusy(button, false, 'สร้างรายการ'); }
+  }
+
+  function showModal(content) {
+    document.getElementById('modal-root').innerHTML =
+      '<div class="modal-backdrop" onclick="if(event.target===this)closeModal()"><div class="modal">' + content + '</div></div>';
+    document.body.classList.add('modal-open');
+  }
+  function closeModal() {
+    document.getElementById('modal-root').innerHTML = '';
+    document.body.classList.remove('modal-open');
+  }
+  function roleLabel(role) { return { OWNER:'เจ้าของ', DOCTOR:'หมอ', STAFF:'พนักงาน' }[role] || role; }
+</script>

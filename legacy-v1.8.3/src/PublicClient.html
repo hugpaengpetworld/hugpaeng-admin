@@ -1,0 +1,263 @@
+<script>
+  var publicState = { quote: null, config: null, lineIdToken: '' };
+  var thaiMonths = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน',
+    'กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+
+  document.addEventListener('DOMContentLoaded', function() {
+    initTabs();
+    initThaiDatePickers();
+    renderPets();
+    document.getElementById('species').addEventListener('change', renderPets);
+    document.getElementById('pet-count').addEventListener('change', renderPets);
+    document.getElementById('availability-btn').addEventListener('click', checkRooms);
+    document.getElementById('booking-form').addEventListener('submit', submitBooking);
+    document.getElementById('track-form').addEventListener('submit', trackBooking);
+    document.getElementById('reschedule-form').addEventListener('submit', submitReschedule);
+    document.getElementById('payment-form').addEventListener('submit', submitPayment);
+    loadPublicConfig();
+  });
+
+  function initTabs() {
+    document.querySelectorAll('.tab').forEach(function(button) {
+      button.addEventListener('click', function() {
+        document.querySelectorAll('.tab').forEach(function(tab) {
+          tab.setAttribute('aria-selected', String(tab === button));
+        });
+        document.querySelectorAll('.tab-panel').forEach(function(panel) { panel.hidden = true; });
+        document.getElementById('tab-' + button.dataset.tab).hidden = false;
+      });
+    });
+  }
+
+  function initThaiDatePickers() {
+    document.querySelectorAll('[data-date-picker]').forEach(function(container, index) {
+      var base = new Date();
+      base.setDate(base.getDate() + (index % 2 === 0 ? 1 : 2));
+      container.innerHTML =
+        '<select aria-label="วัน"></select><select aria-label="เดือน"></select><select aria-label="ปี ค.ศ."></select>';
+      var selects = container.querySelectorAll('select');
+      for (var day = 1; day <= 31; day++) selects[0].add(new Option(day, day));
+      thaiMonths.forEach(function(month, monthIndex) {
+        selects[1].add(new Option(month, monthIndex + 1));
+      });
+      var currentYear = new Date().getFullYear();
+      for (var year = currentYear; year <= currentYear + 3; year++) {
+        selects[2].add(new Option(year, year));
+      }
+      selects[0].value = base.getDate();
+      selects[1].value = base.getMonth() + 1;
+      selects[2].value = base.getFullYear();
+    });
+  }
+
+  function datePickerValue(name) {
+    var container = document.querySelector('[data-date-picker="' + name + '"]');
+    var selects = container.querySelectorAll('select');
+    var year = String(selects[2].value);
+    var month = String(selects[1].value).padStart(2, '0');
+    var day = String(selects[0].value).padStart(2, '0');
+    return year + '-' + month + '-' + day;
+  }
+
+  function loadPublicConfig() {
+    gasCall('getPublicConfig').then(function(config) {
+      publicState.config = config;
+      applyBranding(config);
+      var info = document.getElementById('payment-info');
+      var p = config.payment || {};
+      if (p.promptPayImageUrl || p.bankName || p.accountNumber) {
+        info.hidden = false;
+        info.innerHTML =
+          (p.promptPayImageUrl ? '<img alt="QR PromptPay" src="' + escapeHtml(p.promptPayImageUrl) +
+            '" style="max-width:220px;display:block;margin:0 auto 14px">' : '') +
+          '<strong>ข้อมูลชำระมัดจำ 500 บาท</strong><br>' +
+          escapeHtml(p.bankName || '') + '<br>' +
+          escapeHtml(p.accountName || '') + '<br>' +
+          escapeHtml(p.accountNumber || '');
+      }
+      initLineIfAvailable(config.liffId);
+    }).catch(function(error) { showToast(error.message, true); });
+  }
+
+  function initLineIfAvailable(liffId) {
+    if (!liffId || typeof liff === 'undefined') return;
+    liff.init({ liffId: liffId }).then(function() {
+      if (liff.isLoggedIn()) publicState.lineIdToken = liff.getIDToken() || '';
+    }).catch(function() {});
+  }
+
+  function renderPets() {
+    var count = Number(document.getElementById('pet-count').value);
+    var species = document.getElementById('species').value;
+    var container = document.getElementById('pets-container');
+    container.innerHTML = '';
+    for (var i = 0; i < count; i++) {
+      var panel = document.createElement('div');
+      panel.className = 'pet-panel';
+      panel.dataset.pet = i;
+      panel.innerHTML =
+        '<h4>' + (species === 'CAT' ? 'แมว' : 'สุนัข') + 'ตัวที่ ' + (i + 1) + '</h4>' +
+        '<div class="form-grid three">' +
+          '<div class="field"><label>ชื่อ *</label><input data-key="name"></div>' +
+          '<div class="field"><label>เพศ</label><select data-key="sex"><option value="">ไม่ระบุ</option><option>ผู้</option><option>เมีย</option></select></div>' +
+          '<div class="field"><label>พันธุ์</label><input data-key="breed"></div>' +
+          '<div class="field"><label>อายุ</label><input data-key="ageText" placeholder="เช่น 2 ปี"></div>' +
+          (species === 'DOG' ?
+            '<div class="field"><label>น้ำหนัก (กก.) *</label><input data-key="weightKg" type="number" min="0.1" max="20" step="0.1"></div>' : '') +
+          '<div class="field"><label>ทำหมันแล้ว</label><select data-key="neutered"><option value="false">ยังไม่ได้ทำ/ไม่ทราบ</option><option value="true">ทำแล้ว</option></select></div>' +
+          '<div class="field"><label>โรคประจำตัว</label><input data-key="chronicConditions"></div>' +
+          '<div class="field"><label>ยาที่ใช้อยู่</label><input data-key="currentMedications"></div>' +
+          '<div class="field"><label>ประวัติแพ้</label><input data-key="allergies"></div>' +
+          '<div class="field span-2"><label>วิธีให้อาหาร</label><input data-key="feedingInstructions"></div>' +
+        '</div>';
+      container.appendChild(panel);
+    }
+  }
+
+  function collectPets() {
+    return Array.from(document.querySelectorAll('.pet-panel')).map(function(panel) {
+      var pet = {};
+      panel.querySelectorAll('[data-key]').forEach(function(field) {
+        pet[field.dataset.key] = field.value;
+      });
+      return pet;
+    });
+  }
+
+  function baseRequest(includeCustomer) {
+    var request = {
+      species: document.getElementById('species').value,
+      pets: collectPets(),
+      checkInDate: datePickerValue('check-in'),
+      checkOutDate: datePickerValue('check-out'),
+      checkInTime: document.getElementById('check-in-time').value,
+      checkOutTime: document.getElementById('check-out-time').value
+    };
+    if (includeCustomer) {
+      request.customerName = document.getElementById('customer-name').value;
+      request.phone = document.getElementById('phone').value;
+      request.contactHandle = document.getElementById('contact-handle').value;
+      request.fleaTickTreated = document.querySelector('[name="flea-treated"]:checked').value === 'true';
+      request.fleaTickFoundNow = document.querySelector('[name="flea-found"]:checked').value === 'true';
+      request.fleaTickDate = document.getElementById('flea-date').value ?
+        toCanonicalDate(document.getElementById('flea-date').value) : '';
+      request.fleaTickProduct = document.getElementById('flea-product').value;
+      request.foodOption = document.getElementById('food-option').value;
+      request.specialNotes = document.getElementById('special-notes').value;
+      request.sourceChannel = publicState.lineIdToken ? 'LINE' : 'WEBSITE';
+      request.lineIdToken = publicState.lineIdToken;
+    }
+    return request;
+  }
+
+  async function checkRooms() {
+    var button = document.getElementById('availability-btn');
+    setBusy(button, true);
+    try {
+      var result = await gasCall('checkAvailability', baseRequest(false));
+      publicState.quote = result;
+      var target = document.getElementById('availability-result');
+      target.hidden = false;
+      target.className = result.available ? 'notice success' : 'notice danger';
+      target.innerHTML = result.available ?
+        '<strong>ว่าง ' + result.availableCount + ' ห้อง/กรง</strong>' +
+        '<div class="availability"><div class="metric"><span>จำนวนคืน</span><strong>' +
+          result.quote.nights + '</strong></div><div class="metric"><span>ราคาต่อคืน</span><strong>' +
+          result.quote.unitPrice.toLocaleString('th-TH') + ' บาท</strong></div><div class="metric"><span>รวมค่าที่พัก</span><strong>' +
+          result.quote.lodgingTotal.toLocaleString('th-TH') + ' บาท</strong></div></div>' +
+        '<span>หมายเหตุ: ห้องจะถูกกันเมื่อกดส่งคำขอสำเร็จ</span>' :
+        '<strong>ห้องเต็มในช่วงวันที่เลือก</strong><br>กรุณาเลือกช่วงวันใหม่';
+      document.getElementById('customer-details').hidden = !result.available;
+      renderPets();
+    } catch (error) {
+      showToast(error.message, true);
+    } finally {
+      setBusy(button, false, 'ตรวจห้องว่างและคำนวณราคา');
+    }
+  }
+
+  async function submitBooking(event) {
+    event.preventDefault();
+    var details = document.getElementById('customer-details');
+    if (details.hidden) return checkRooms();
+    var button = document.getElementById('submit-booking-btn');
+    setBusy(button, true);
+    try {
+      var request = baseRequest(true);
+      request.vaccinationFile = await fileToPayload(document.getElementById('vaccination-file').files[0]);
+      var result = await gasCall('createPublicBooking', request);
+      details.innerHTML =
+        '<div class="notice success"><h3>รับคำขอแล้ว</h3>' +
+        '<p>' + escapeHtml(result.message) + '</p>' +
+        '<p>รหัสการจอง</p><p style="font-size:1.8rem;font-weight:900;letter-spacing:.04em">' +
+        escapeHtml(result.bookingCode) + '</p>' +
+        '<span class="status pending">รออนุมัติห้อง</span>' +
+        '<p class="hint">กรุณาบันทึกรหัสนี้ไว้สำหรับติดตามรายการ</p></div>';
+      details.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } catch (error) {
+      showToast(error.message, true);
+    } finally {
+      setBusy(button, false, 'ส่งคำขอและกันห้อง');
+    }
+  }
+
+  async function trackBooking(event) {
+    event.preventDefault();
+    var button = event.submitter;
+    setBusy(button, true);
+    try {
+      var result = await gasCall(
+        'lookupBooking',
+        document.getElementById('track-code').value,
+        document.getElementById('track-phone').value
+      );
+      document.getElementById('track-result').innerHTML =
+        '<div class="notice success"><strong>' + escapeHtml(result.bookingCode) + '</strong><br>' +
+        '<span class="status ' + (result.status === 'PENDING_APPROVAL' ? 'pending' : '') + '">' +
+        escapeHtml(result.statusLabel) + '</span><br><br>' +
+        'วันเข้าพัก ' + escapeHtml(result.checkInThai) + ' ถึง ' + escapeHtml(result.checkOutThai) +
+        '<br>ค่าที่พัก ' + Number(result.lodgingTotal).toLocaleString('th-TH') + ' บาท' +
+        '<br>การชำระเงิน: ' + escapeHtml(result.paymentStatusLabel) + '</div>';
+    } catch (error) { showToast(error.message, true); }
+    finally { setBusy(button, false, 'ตรวจสอบ'); }
+  }
+
+  async function submitReschedule(event) {
+    event.preventDefault();
+    var button = event.submitter;
+    setBusy(button, true);
+    try {
+      var result = await gasCall(
+        'requestReschedule',
+        document.getElementById('reschedule-code').value,
+        document.getElementById('reschedule-phone').value,
+        {
+          checkInDate: datePickerValue('new-check-in'),
+          checkOutDate: datePickerValue('new-check-out'),
+          reason: document.getElementById('reschedule-reason').value
+        }
+      );
+      showToast(result.message);
+      event.target.reset();
+    } catch (error) { showToast(error.message, true); }
+    finally { setBusy(button, false, 'ส่งคำขอเลื่อนวัน'); }
+  }
+
+  async function submitPayment(event) {
+    event.preventDefault();
+    var button = event.submitter;
+    setBusy(button, true);
+    try {
+      var file = await fileToPayload(document.getElementById('payment-slip').files[0]);
+      var result = await gasCall(
+        'submitDepositSlip',
+        document.getElementById('payment-code').value,
+        document.getElementById('payment-phone').value,
+        file
+      );
+      showToast(result.message);
+      event.target.reset();
+    } catch (error) { showToast(error.message, true); }
+    finally { setBusy(button, false, 'ส่งหลักฐาน'); }
+  }
+</script>

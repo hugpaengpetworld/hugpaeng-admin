@@ -1,0 +1,11 @@
+{
+  "name": "bmp-booking-gas",
+  "version": "1.8.3",
+  "private": true,
+  "description": "Temporary Google Sheets + Apps Script pet hotel booking system",
+  "scripts": {
+    "build:cloudflare": "node tools/build-cloudflare.mjs",
+    "test": "node tools/build-cloudflare.mjs && node --test tests/*.test.js",
+    "check": "node tools/build-cloudflare.mjs && node tools/check-syntax.js"
+  }
+}

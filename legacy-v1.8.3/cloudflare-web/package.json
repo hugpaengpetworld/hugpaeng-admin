@@ -1,0 +1,9 @@
+{
+  "name": "bmpbooking-web",
+  "version": "1.7.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "node --check src/worker.js"
+  }
+}

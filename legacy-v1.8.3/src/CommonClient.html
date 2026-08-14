@@ -1,0 +1,131 @@
+<script>
+  function gasCall(name) {
+    var args = Array.prototype.slice.call(arguments, 1);
+    return new Promise(function(resolve, reject) {
+      var runner = google.script.run
+        .withSuccessHandler(resolve)
+        .withFailureHandler(function(error) {
+          reject(new Error(error && error.message ? error.message : String(error)));
+        });
+      runner[name].apply(runner, args);
+    });
+  }
+
+  function showToast(message, isError) {
+    var old = document.querySelector('.toast');
+    if (old) old.remove();
+    var toast = document.createElement('div');
+    toast.className = 'toast';
+    if (isError) toast.style.background = '#a33a33';
+    toast.textContent = message;
+    toast.setAttribute('role', 'status');
+    document.body.appendChild(toast);
+    setTimeout(function() { toast.remove(); }, 5000);
+  }
+
+  function setBusy(button, busy, text) {
+    if (!button) return;
+    if (busy) {
+      button.dataset.originalText = button.textContent;
+      button.disabled = true;
+      button.innerHTML = '<span class="loading" aria-hidden="true"></span> กำลังดำเนินการ';
+    } else {
+      button.disabled = false;
+      button.textContent = button.dataset.originalText || text || 'ดำเนินการ';
+    }
+  }
+
+  function escapeHtml(value) {
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  function toCanonicalDate(value) {
+    var raw = String(value == null ? '' : value).trim();
+    if (!raw) return '';
+    var year;
+    var month;
+    var day;
+    var iso = /^(\d{4})-(\d{1,2})-(\d{1,2})(?:[T\s].*)?$/.exec(raw);
+    var yearFirst = /^(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})$/.exec(raw);
+    var dayFirst = /^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/.exec(raw);
+    if (iso) {
+      year = Number(iso[1]); month = Number(iso[2]); day = Number(iso[3]);
+    } else if (yearFirst) {
+      year = Number(yearFirst[1]); month = Number(yearFirst[2]); day = Number(yearFirst[3]);
+    } else if (dayFirst) {
+      day = Number(dayFirst[1]); month = Number(dayFirst[2]); year = Number(dayFirst[3]);
+    } else {
+      throw new Error('รูปแบบวันที่ไม่ถูกต้อง กรุณาใช้ วัน-เดือน-ปี');
+    }
+    if (year >= 2400) year -= 543;
+    var date = new Date(Date.UTC(year, month - 1, day));
+    if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 ||
+        date.getUTCDate() !== day) {
+      throw new Error('วันที่ไม่ถูกต้อง');
+    }
+    return String(year).padStart(4, '0') + '-' + String(month).padStart(2, '0') +
+      '-' + String(day).padStart(2, '0');
+  }
+
+  function formatDateDisplay(value) {
+    if (!value) return '-';
+    try {
+      var parts = toCanonicalDate(value).split('-');
+      return parts[2] + '-' + parts[1] + '-' + parts[0];
+    } catch (error) {
+      return String(value);
+    }
+  }
+
+  function iconMarkup(name) {
+    var allowed = ['dashboard', 'boarding', 'bookings', 'rooms', 'sterilization',
+      'calendar', 'list', 'finance', 'users', 'settings', 'menu', 'close',
+      'logout', 'chevron-down', 'cat', 'dog', 'printer'];
+    if (allowed.indexOf(name) === -1) return '';
+    return '<svg class="app-icon" aria-hidden="true" focusable="false"><use href="#icon-' +
+      name + '"></use></svg>';
+  }
+
+  function applyBranding(config) {
+    var data = config || {};
+    var thaiName = data.clinicNameTh || data.clinicName || 'คลินิกบ้านหมอปอยรักษาสัตว์';
+    var englishName = data.clinicNameEn || 'Baan Mhor Poy Vet Clinic';
+    document.querySelectorAll('[data-clinic-name-th]').forEach(function(element) {
+      element.textContent = thaiName;
+    });
+    document.querySelectorAll('[data-clinic-name-en]').forEach(function(element) {
+      element.textContent = englishName;
+    });
+    document.querySelectorAll('[data-brand-logo]').forEach(function(element) {
+      if (!data.logoDataUrl) return;
+      element.textContent = '';
+      var image = document.createElement('img');
+      image.className = 'brand-logo-image';
+      image.src = data.logoDataUrl;
+      image.alt = 'โลโก้ ' + thaiName;
+      element.appendChild(image);
+    });
+    document.title = thaiName;
+  }
+
+  function fileToPayload(file, maxBytes, maxSizeLabel) {
+    if (!file) return Promise.resolve(null);
+    var limit = maxBytes || 5 * 1024 * 1024;
+    if (file.size > limit) {
+      return Promise.reject(new Error('ไฟล์ต้องมีขนาดไม่เกิน ' + (maxSizeLabel || '5 MB')));
+    }
+    return new Promise(function(resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function() {
+        resolve({ name: file.name, mimeType: file.type, data: reader.result });
+      };
+      reader.onerror = function() { reject(new Error('อ่านไฟล์ไม่สำเร็จ')); };
+      reader.readAsDataURL(file);
+    });
+  }
+</script>

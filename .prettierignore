@@ -1,0 +1,11 @@
+.next
+.open-next*
+coverage
+legacy-v1.8.3
+node_modules
+package-lock.json
+AGENTS.md
+CODEX_START_PROMPT.md
+MANIFEST.md
+PROJECT_HANDOFF.md
+docs

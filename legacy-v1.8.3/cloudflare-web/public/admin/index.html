@@ -1,0 +1,2413 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <style>
+  :root {
+    --green-950: #123d32;
+    --green-900: #184a3c;
+    --green-700: #2f755b;
+    --green-500: #55a47d;
+    --green-300: #85c9a5;
+    --green-100: #dcece3;
+    --green-50: #eef7f1;
+    --surface: #ffffff;
+    --background: #f5f7f4;
+    --text: #17352c;
+    --muted: #6b7e76;
+    --border: #d5e1db;
+    --warning: #9a5a05;
+    --warning-bg: #fff5d9;
+    --danger: #a33a33;
+    --danger-bg: #ffefed;
+    --shadow: 0 12px 35px rgba(18, 61, 50, 0.09);
+    --radius: 18px;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    color: var(--text);
+    background: var(--background);
+    font-family: "Noto Sans Thai", "Leelawadee UI", Tahoma, sans-serif;
+    line-height: 1.55;
+    overflow-x: hidden;
+  }
+  body.modal-open, body.navigation-open { overflow: hidden; }
+  img, svg { max-width: 100%; }
+  button, input, select, textarea { font: inherit; }
+  button, a { -webkit-tap-highlight-color: transparent; }
+  button:focus-visible, a:focus-visible, input:focus-visible,
+  select:focus-visible, textarea:focus-visible {
+    outline: 3px solid rgba(133, 201, 165, .65);
+    outline-offset: 2px;
+  }
+  [hidden] { display: none !important; }
+  .visually-hidden {
+    position: absolute !important; width: 1px !important; height: 1px !important;
+    padding: 0 !important; margin: -1px !important; overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important; white-space: nowrap !important; border: 0 !important;
+  }
+  .icon-sprite {
+    position: absolute; width: 0; height: 0; overflow: hidden;
+  }
+  .app-icon {
+    width: 20px; height: 20px; display: inline-block; flex: 0 0 auto;
+    fill: none; stroke: currentColor; stroke-width: 2;
+    stroke-linecap: round; stroke-linejoin: round;
+  }
+
+  .topbar {
+    min-height: 68px;
+    background: var(--green-100);
+    color: var(--green-950);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 12px max(clamp(18px, 4vw, 56px), env(safe-area-inset-right)) 12px
+      max(clamp(18px, 4vw, 56px), env(safe-area-inset-left));
+    border-bottom: 1px solid #c8ddd2;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+  }
+  .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .brand-mark {
+    width: 44px; height: 44px; border-radius: 14px;
+    display: grid; place-items: center; flex: 0 0 auto;
+    color: #fff; background: var(--green-950); font-size: 22px;
+    overflow: hidden;
+  }
+  .brand-logo-image {
+    display: block; width: 100%; height: 100%; object-fit: contain;
+    border-radius: inherit; background: #fff;
+  }
+  .brand strong { display: block; font-size: 1rem; }
+  .brand small { display: block; color: var(--green-700); }
+  .top-links { display: flex; align-items: center; gap: 8px; }
+
+  .hero {
+    background:
+      radial-gradient(circle at 84% 15%, rgba(133,201,165,.32), transparent 31%),
+      linear-gradient(135deg, #123d32 0%, #1d5948 60%, #2f755b 100%);
+    color: #fff;
+    padding: clamp(46px, 8vw, 88px) clamp(18px, 7vw, 120px);
+  }
+  .hero-grid {
+    max-width: 1180px; margin: auto;
+    display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(280px, .75fr);
+    gap: clamp(26px, 6vw, 72px); align-items: center;
+  }
+  .eyebrow {
+    margin: 0 0 10px; color: var(--green-300); font-weight: 800;
+    letter-spacing: .03em; font-size: .84rem;
+  }
+  .hero h1 { margin: 0 0 14px; font-size: clamp(2rem, 5vw, 4rem); line-height: 1.12; }
+  .hero p { margin: 0 0 24px; color: #e8f4ee; max-width: 680px; font-size: 1.08rem; }
+  .hero-card {
+    background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.23);
+    border-radius: 24px; padding: 24px; backdrop-filter: blur(8px);
+  }
+  .hero-card strong { font-size: 1.1rem; }
+  .hero-list { list-style: none; padding: 0; margin: 16px 0 0; display: grid; gap: 12px; }
+  .hero-list li { display: flex; gap: 10px; color: #eef8f2; }
+
+  .page-shell { max-width: 1180px; margin: auto; padding: 34px 18px 70px; }
+  .section-head { margin-bottom: 22px; }
+  .section-head h2 { margin: 0 0 6px; font-size: clamp(1.45rem, 3vw, 2rem); }
+  .section-head p { margin: 0; color: var(--muted); }
+
+  .tab-list {
+    display: flex; gap: 8px; overflow-x: auto; padding: 5px;
+    background: var(--green-100); border-radius: 15px; margin: 0 0 22px;
+  }
+  .tab {
+    border: 0; background: transparent; color: var(--green-950);
+    font-weight: 800; padding: 11px 17px; border-radius: 11px; cursor: pointer;
+    white-space: nowrap;
+  }
+  .tab[aria-selected="true"] { color: #fff; background: var(--green-700); }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: clamp(18px, 3vw, 28px);
+    box-shadow: var(--shadow);
+  }
+  .card + .card { margin-top: 18px; }
+  .card h2, .card h3 { margin-top: 0; }
+  .logo-settings-grid {
+    display: grid; grid-template-columns: auto minmax(0, 1fr);
+    gap: 20px; align-items: center;
+  }
+  .clinic-logo-preview {
+    width: 104px; height: 104px; padding: 8px;
+    display: grid; place-items: center; border-radius: 18px;
+    border: 1px solid var(--border); background: var(--green-50);
+  }
+  .clinic-logo-preview .brand-mark { width: 84px; height: 84px; border-radius: 16px; }
+  .form-grid {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 17px;
+  }
+  .form-grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .field { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+  .field.span-2 { grid-column: span 2; }
+  label { font-size: .91rem; font-weight: 800; color: var(--green-950); }
+  .hint { color: var(--muted); font-size: .82rem; }
+  input, select, textarea {
+    width: 100%; border: 1px solid #bfcfc7; border-radius: 11px;
+    padding: 11px 12px; color: var(--text); background: #fff;
+  }
+  input:hover, select:hover, textarea:hover { border-color: var(--green-500); }
+  textarea { min-height: 92px; resize: vertical; }
+  input[type="checkbox"], input[type="radio"] { width: auto; accent-color: var(--green-700); }
+  .choice-row { display: flex; gap: 15px; flex-wrap: wrap; padding: 9px 0; }
+  .choice { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+
+  .thai-date {
+    display: grid; grid-template-columns: .7fr 1.2fr .85fr; gap: 7px;
+  }
+  .pet-panel {
+    border: 1px solid var(--border); background: var(--green-50);
+    padding: 18px; border-radius: 15px; margin-top: 14px;
+  }
+  .pet-panel h4 { margin: 0 0 14px; }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    border: 1px solid transparent; border-radius: 11px; padding: 11px 18px;
+    font-weight: 800; cursor: pointer; text-decoration: none;
+    transition: transform .15s, background .15s;
+    min-height: 44px;
+  }
+  .btn:hover { transform: translateY(-1px); }
+  .btn-primary { color: #fff; background: var(--green-700); }
+  .btn-primary:hover { background: var(--green-950); }
+  .btn-light { color: var(--green-950); background: #fff; border-color: var(--border); }
+  .btn-danger { color: #fff; background: var(--danger); }
+  .btn-small { padding: 8px 11px; font-size: .84rem; }
+  .actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 20px; }
+  .holiday-add-actions { margin-top: 18px; }
+  .holiday-add-form {
+    margin-top: 12px;
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--green-50);
+  }
+  .holiday-add-form[hidden], .holiday-add-actions [hidden] { display: none; }
+  .holiday-list { display: grid; gap: 10px; }
+  .holiday-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 12px; border: 1px solid var(--border); border-radius: 14px; background: #fff;
+  }
+  .holiday-row small { display: block; margin-top: 4px; color: var(--muted); }
+  .holiday-row .actions { margin-top: 0; flex-wrap: wrap; }
+  .btn[disabled], button[disabled] { opacity: .55; cursor: wait; transform: none; }
+
+  .notice {
+    padding: 13px 15px; border-radius: 12px; margin: 14px 0;
+    border: 1px solid var(--border); background: var(--green-50);
+  }
+  .notice.warning { color: #6f4507; background: var(--warning-bg); border-color: #ecd9a6; }
+  .notice.danger { color: var(--danger); background: var(--danger-bg); border-color: #f0c7c3; }
+  .notice.success { color: var(--green-950); background: #e3f5e9; border-color: #b7ddc7; }
+
+  .availability {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 18px 0;
+  }
+  .metric {
+    border-radius: 14px; background: var(--green-50); padding: 16px;
+    border: 1px solid var(--border);
+  }
+  .metric span { display: block; color: var(--muted); font-size: .84rem; }
+  .metric strong { display: block; margin-top: 5px; font-size: 1.5rem; }
+
+  .status {
+    display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px;
+    border-radius: 999px; font-size: .78rem; font-weight: 800;
+    color: var(--green-950); background: var(--green-100);
+  }
+  .status::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--green-700); }
+  .status.pending { color: #76510f; background: var(--warning-bg); }
+  .status.pending::before { background: #bd780a; }
+  .status.danger { color: var(--danger); background: var(--danger-bg); }
+  .status.danger::before { background: var(--danger); }
+
+  .loading {
+    display: inline-block; width: 18px; height: 18px; border: 2px solid currentColor;
+    border-right-color: transparent; border-radius: 50%; animation: spin .75s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .toast {
+    position: fixed; right: 20px; bottom: 20px; z-index: 100;
+    max-width: min(420px, calc(100vw - 40px)); padding: 14px 18px;
+    border-radius: 13px; color: #fff; background: var(--green-950);
+    box-shadow: var(--shadow);
+  }
+
+  .admin-shell { min-height: 100vh; display: grid; grid-template-columns: 248px 1fr; }
+  .sidebar {
+    background: var(--green-950); color: #fff; padding: 20px 14px;
+    position: sticky; top: 0; height: 100vh; overflow-y: auto;
+  }
+  .sidebar .brand { padding: 4px 6px 22px; border-bottom: 1px solid rgba(255,255,255,.14); }
+  .sidebar .brand-mark { background: var(--green-700); }
+  .sidebar .brand small { color: #bfe2cf; }
+  .sidebar-toggle, .sidebar-close, .sidebar-backdrop { display: none; }
+  .nav { display: grid; gap: 6px; margin-top: 18px; }
+  .nav-group { display: grid; gap: 4px; }
+  .nav button {
+    border: 0; color: #fff; background: transparent; text-align: left;
+    padding: 12px 13px; border-radius: 11px; cursor: pointer;
+    display: flex; align-items: center; gap: 10px; font-weight: 700;
+  }
+  .nav button:hover, .nav button.active { background: var(--green-700); }
+  .nav-parent { width: 100%; }
+  .nav-chevron { margin-left: auto; display: inline-grid; place-items: center; transition: transform .15s; }
+  .nav-chevron .app-icon { width: 16px; height: 16px; }
+  .nav-group.open .nav-chevron { transform: rotate(180deg); }
+  .nav-submenu { display: none; gap: 3px; }
+  .nav-group.open .nav-submenu { display: grid; }
+  .nav-submenu button { padding-block: 9px; padding-left: 30px; font-size: .9rem; }
+  .nav-icon { width: 22px; display: inline-grid; place-items: center; flex: 0 0 22px; }
+  .nav-icon .app-icon { width: 20px; height: 20px; color: #fff; }
+  .nav-submenu .nav-icon .app-icon { width: 17px; height: 17px; }
+  .admin-main { min-width: 0; }
+  .admin-top {
+    min-height: 68px; display: flex; align-items: center; justify-content: space-between;
+    gap: 15px; padding: 12px 24px; background: var(--green-100);
+    border-bottom: 1px solid #c8ddd2; color: var(--green-950);
+  }
+  .admin-title { min-width: 0; flex: 1; }
+  .admin-title strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .admin-user-actions { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  #admin-user { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .admin-content { padding: 26px; }
+  .section-head-actions, .card-head-actions {
+    display: flex; justify-content: space-between; gap: 15px; align-items: flex-end;
+  }
+  .card-head-actions { align-items: center; }
+  .metric-grid {
+    display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px; margin-bottom: 20px;
+  }
+  .room-legend {
+    display: flex; flex-wrap: wrap; gap: 10px 18px; margin: -8px 0 18px;
+    color: var(--green-950); font-size: .86rem;
+  }
+  .room-legend span { display: inline-flex; align-items: center; gap: 7px; }
+  .legend-dot { width: 14px; height: 14px; border-radius: 4px; border: 1px solid rgba(18,61,50,.18); }
+  .legend-dot.available { background: #C8EAD1; }
+  .legend-dot.pending { background: #F7D081; }
+  .legend-dot.occupied { background: #FD464A; }
+  .legend-dot.unavailable { background: #E2E5E3; }
+  .room-date-toolbar {
+    display: flex; align-items: center; justify-content: space-between; gap: 18px;
+    margin-bottom: 20px; padding: 16px 18px;
+  }
+  .room-date-toolbar strong { display: block; font-size: 1.05rem; }
+  .room-date-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .room-date-picker { width: 165px; }
+  .room-date-picker input { min-height: 40px; padding-block: 7px; }
+  .room-card {
+    min-height: 176px; transition: transform .15s, box-shadow .15s;
+    border: 1px solid var(--border); color: var(--text); text-align: left;
+    width: 100%; cursor: pointer; position: relative; font: inherit;
+  }
+  .room-card + .room-card { margin-top: 0; }
+  .room-card:hover { transform: translateY(-2px); }
+  .room-card:focus-visible { outline-offset: 3px; }
+  .room-card.room-available { background: #C8EAD1; }
+  .room-card.room-pending { background: #F7D081; }
+  .room-card.room-occupied { background: #FD464A; color: #17352c; }
+  .room-card.room-unavailable { background: #E2E5E3; }
+  .room-card .hint { color: #315e4e; }
+  .room-card.room-occupied .hint { color: #4a2424; }
+  .room-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+  .room-id { display: block; font-size: 1.5rem; margin: 5px 0; }
+  .room-species-icon {
+    width: 52px; height: 52px; flex: 0 0 52px; border-radius: 16px;
+    display: grid; place-items: center; color: #fff; background: rgba(18,61,50,.78);
+    box-shadow: 0 6px 15px rgba(18,61,50,.16);
+  }
+  .room-species-icon .app-icon { width: 34px; height: 34px; stroke-width: 1.8; }
+  .room-pet-names { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  .room-pet-name {
+    display: inline-flex; max-width: 100%; padding: 5px 10px; border-radius: 999px;
+    background: rgba(255,255,255,.88); color: var(--green-950); font-weight: 800;
+    font-size: .82rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .room-booking-code { display: block; margin-top: 10px; font-weight: 700; }
+  .status-select { min-width: 175px; padding: 8px 10px; }
+  .calendar-card { padding: 20px; }
+  .calendar-title { font-size: 1.2rem; font-weight: 800; margin-bottom: 14px; }
+  .calendar-weekdays, .calendar-grid {
+    display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 7px;
+  }
+  .calendar-weekdays span {
+    text-align: center; color: var(--muted); font-size: .82rem; font-weight: 800;
+    padding: 5px;
+  }
+  .calendar-day {
+    min-height: 98px; border: 1px solid var(--border); border-radius: 12px;
+    background: #C8EAD1; color: var(--green-950); padding: 10px;
+    display: flex; flex-direction: column; align-items: flex-start; gap: 3px;
+    cursor: pointer; text-align: left;
+  }
+  .calendar-day:hover { border-color: var(--green-700); transform: translateY(-1px); }
+  .calendar-day strong { font-size: 1.08rem; }
+  .calendar-day span { font-weight: 800; }
+  .calendar-day small { color: #315e4e; }
+  .calendar-day.full { background: #FD464A; }
+  .calendar-day.full small { color: #4a2424; }
+  .calendar-day.holiday { background: #FF8FAB; }
+  .calendar-day.holiday small { color: #5D2334; }
+  .calendar-day.over-capacity { background: #D7AFF8; color: var(--green-950); }
+  .calendar-day.over-capacity small { color: #4A285F; }
+  .calendar-pet-link {
+    display: block; width: 100%; padding: 3px 5px; border-radius: 6px;
+    background: rgba(255,255,255,.75); color: var(--green-950);
+    font-size: .72rem; font-weight: 800; overflow: hidden;
+    text-overflow: ellipsis; white-space: nowrap;
+  }
+  .calendar-pet-link:hover, .calendar-pet-link:focus-visible {
+    background: #fff; outline: 2px solid var(--green-700); outline-offset: 1px;
+  }
+  .calendar-day.muted { background: transparent; border-color: transparent; cursor: default; }
+  .data-table-wrap {
+    width: 100%; overflow-x: auto; overscroll-behavior-inline: contain;
+    -webkit-overflow-scrolling: touch; border: 1px solid var(--border); border-radius: 14px;
+  }
+  table { width: 100%; border-collapse: collapse; min-width: 820px; background: #fff; }
+  th, td { padding: 12px 13px; text-align: left; border-bottom: 1px solid var(--border); }
+  th { color: var(--green-950); background: var(--green-100); font-size: .85rem; }
+  tr:last-child td { border-bottom: 0; }
+  tr:hover td { background: #f8fbf9; }
+  .empty { text-align: center; padding: 45px 20px; color: var(--muted); }
+  .login-page {
+    min-height: 100vh; display: grid; place-items: center;
+    padding: 20px; background:
+      radial-gradient(circle at 80% 10%, rgba(133,201,165,.42), transparent 30%),
+      var(--background);
+  }
+  .login-card { width: min(440px, 100%); }
+  .modal-backdrop {
+    position: fixed; inset: 0; z-index: 80; background: rgba(7,29,23,.64);
+    display: grid; place-items: center; padding: 18px;
+  }
+  .modal {
+    width: min(780px, 100%); max-height: 88vh; overflow-y: auto;
+    background: #fff; border-radius: 18px; padding: 23px;
+    overscroll-behavior: contain;
+  }
+  .modal-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 15px; }
+  .modal-head h2 { margin: 0; }
+  .icon-btn { border: 0; background: var(--green-100); border-radius: 9px; padding: 7px 10px; cursor: pointer; }
+  .icon-btn .app-icon { width: 18px; height: 18px; display: block; }
+  #logout-btn .app-icon { width: 17px; height: 17px; }
+  .detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
+  .detail-item { border: 1px solid var(--border); border-radius: 11px; padding: 11px; }
+  .detail-item span { display: block; color: var(--muted); font-size: .79rem; }
+  .operation-species-list {
+    width: max-content; max-width: 100%; margin: -10px 0 18px;
+    border: 1px solid var(--border); background: #fff;
+  }
+  .operation-pet-line { display: block; white-space: nowrap; }
+  .operation-pet-line + .operation-pet-line { margin-top: 4px; }
+  .table-link {
+    border: 0; padding: 0; color: var(--green-950); background: transparent;
+    font: inherit; font-weight: 800; cursor: pointer; text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .booking-room-field label {
+    display: block; margin-bottom: 7px; color: var(--muted); font-size: .79rem;
+  }
+  .booking-room-field select { width: 100%; }
+  .booking-room-field small { display: block; margin-top: 6px; color: var(--muted); }
+
+  @media (max-width: 1024px) {
+    .hero-grid { grid-template-columns: 1fr; }
+    .admin-shell { display: block; }
+    .sidebar {
+      position: fixed; inset: 0 auto 0 0; width: min(310px, 86vw); height: 100dvh;
+      z-index: 90; transform: translateX(-105%); transition: transform .22s ease;
+      box-shadow: 18px 0 45px rgba(7,29,23,.22);
+      padding-top: max(20px, env(safe-area-inset-top));
+      padding-bottom: max(20px, env(safe-area-inset-bottom));
+    }
+    .admin-shell.sidebar-open .sidebar { transform: translateX(0); }
+    .sidebar-close {
+      display: grid; place-items: center; position: absolute; top: 13px; right: 12px;
+      width: 42px; height: 42px; border: 1px solid rgba(255,255,255,.24);
+      border-radius: 11px; color: #fff; background: rgba(255,255,255,.1);
+      cursor: pointer; z-index: 2;
+    }
+    .sidebar-close .app-icon { width: 20px; height: 20px; }
+    .sidebar .brand { padding-right: 50px; }
+    .sidebar-backdrop {
+      position: fixed; inset: 0; z-index: 80; border: 0;
+      background: rgba(7,29,23,.58); cursor: pointer;
+    }
+    .admin-shell.sidebar-open .sidebar-backdrop { display: block; }
+    .sidebar-toggle {
+      display: inline-grid; place-items: center; flex: 0 0 auto;
+      width: 44px; height: 44px; border: 1px solid #b9d2c5; border-radius: 11px;
+      color: var(--green-950); background: #fff; cursor: pointer; font-size: 1.2rem;
+    }
+    .sidebar-toggle .app-icon { width: 22px; height: 22px; }
+    .admin-top {
+      position: sticky; top: 0; z-index: 40;
+      padding-left: max(18px, env(safe-area-inset-left));
+      padding-right: max(18px, env(safe-area-inset-right));
+    }
+    .admin-content { padding: 22px 18px 50px; }
+    .form-grid.three { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+
+  @media (max-width: 700px) {
+    .topbar {
+      min-height: 60px; gap: 9px;
+      padding: 9px max(12px, env(safe-area-inset-right)) 9px
+        max(12px, env(safe-area-inset-left));
+    }
+    .topbar .brand { gap: 9px; }
+    .topbar .brand-mark { width: 38px; height: 38px; border-radius: 11px; font-size: 18px; }
+    .topbar .brand strong { font-size: .88rem; line-height: 1.25; }
+    .topbar .brand small { font-size: .7rem; line-height: 1.25; }
+    .top-links { flex: 0 0 auto; }
+    .top-links .hide-mobile { display: none; }
+    .top-links .btn { padding-inline: 11px; font-size: .78rem; }
+    .hero { padding: 36px 16px 42px; }
+    .hero-grid { gap: 24px; }
+    .hero h1 { font-size: clamp(2rem, 11vw, 3rem); }
+    .hero p { font-size: .98rem; }
+    .hero-card { padding: 19px; border-radius: 18px; }
+    .page-shell { padding: 26px 12px 46px; }
+    .tab-list {
+      margin-inline: -2px; scroll-snap-type: x proximity;
+      scrollbar-width: thin;
+    }
+    .tab { scroll-snap-align: start; padding: 10px 14px; }
+    .card { padding: 17px 14px; border-radius: 15px; }
+    .logo-settings-grid { grid-template-columns: 1fr; }
+    .form-grid, .form-grid.three, .detail-grid { grid-template-columns: 1fr; }
+    .field.span-2 { grid-column: span 1; }
+    .availability { grid-template-columns: 1fr; }
+    input, select, textarea { min-height: 46px; font-size: 16px; }
+    textarea { min-height: 100px; }
+    .actions .btn { flex: 1 1 170px; }
+    .holiday-row { flex-direction: column; align-items: stretch; }
+    .admin-top {
+      min-height: 62px; gap: 9px;
+      padding: 8px max(12px, env(safe-area-inset-right)) 8px
+        max(12px, env(safe-area-inset-left));
+    }
+    .admin-title small { display: none; }
+    .admin-title strong { font-size: .93rem; }
+    .admin-user-actions { gap: 7px; }
+    #admin-user { max-width: 118px; font-size: .75rem; }
+    .admin-content { padding: 18px 12px 38px; }
+    .section-head { margin-bottom: 16px; }
+    .section-head-actions, .card-head-actions {
+      align-items: stretch; flex-direction: column;
+    }
+    .section-head-actions > .btn, .card-head-actions > .btn { width: 100%; }
+    .metric-grid { gap: 10px; }
+    .rooms-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .room-card { min-height: 140px; padding: 15px 13px; }
+    .room-date-toolbar { align-items: stretch; flex-direction: column; }
+    .room-date-actions { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .room-date-actions .btn, .room-date-picker { width: 100%; }
+    .room-date-actions .btn { padding-inline: 8px; }
+    .room-species-icon { width: 44px; height: 44px; flex-basis: 44px; border-radius: 13px; }
+    .room-species-icon .app-icon { width: 29px; height: 29px; }
+    .room-legend { gap: 8px 12px; font-size: .78rem; }
+    .data-table-wrap { border-radius: 11px; }
+    table { min-width: 720px; font-size: .9rem; }
+    th, td { padding: 10px; }
+    .status-select { min-width: 160px; }
+    .calendar-card { padding: 12px 8px; }
+    .calendar-weekdays, .calendar-grid { gap: 3px; }
+    .calendar-weekdays span { padding: 3px 0; font-size: .72rem; }
+    .calendar-day { min-height: 72px; padding: 5px 4px; border-radius: 8px; }
+    .calendar-day strong { font-size: .92rem; }
+    .calendar-day span { font-size: .66rem; line-height: 1.15; }
+    .calendar-day small { font-size: .62rem; line-height: 1.15; }
+    .modal-backdrop {
+      place-items: end center; padding: 0;
+      padding-top: max(10px, env(safe-area-inset-top));
+    }
+    .modal {
+      width: 100%; max-height: calc(100dvh - max(10px, env(safe-area-inset-top)));
+      border-radius: 18px 18px 0 0; padding: 20px 14px max(20px, env(safe-area-inset-bottom));
+    }
+    .modal-head { position: sticky; top: -20px; z-index: 2; background: #fff; padding: 8px 0; }
+    .toast {
+      right: 12px; bottom: max(12px, env(safe-area-inset-bottom));
+      max-width: calc(100vw - 24px);
+    }
+    .login-page { align-items: start; padding: max(18px, env(safe-area-inset-top)) 12px 18px; }
+    .login-card { margin-top: 6vh; }
+  }
+
+  @media (max-width: 479px) {
+    .metric-grid { grid-template-columns: 1fr; }
+    .rooms-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .room-date-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .room-card { min-height: 158px; }
+    .room-species-icon { width: 38px; height: 38px; flex-basis: 38px; }
+    .room-species-icon .app-icon { width: 25px; height: 25px; }
+    .room-pet-name { font-size: .74rem; padding: 4px 7px; }
+    .room-booking-code { overflow-wrap: anywhere; font-size: .72rem; }
+    .thai-date { grid-template-columns: .72fr 1.25fr .9fr; gap: 5px; }
+    .thai-date select { padding-inline: 7px; }
+    #admin-user { display: none; }
+    .admin-user-actions .btn { padding-inline: 10px; }
+    .empty { padding: 34px 14px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+  }
+</style>
+
+  <title>หลังบ้าน | BMP Booking</title>
+</head>
+<body>
+  <svg class="icon-sprite" aria-hidden="true" focusable="false">
+  <symbol id="icon-dashboard" viewBox="0 0 24 24">
+    <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
+    <rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
+    <rect x="3" y="14" width="7" height="7" rx="1.5"></rect>
+    <rect x="14" y="14" width="7" height="7" rx="1.5"></rect>
+  </symbol>
+  <symbol id="icon-boarding" viewBox="0 0 24 24">
+    <circle cx="7.2" cy="8" r="2"></circle>
+    <circle cx="12" cy="6.5" r="2"></circle>
+    <circle cx="16.8" cy="8" r="2"></circle>
+    <circle cx="19" cy="12" r="1.8"></circle>
+    <path d="M6.2 17.1c0-3.1 2.6-6 5.8-6s5.8 2.9 5.8 6c0 2-1.5 3.4-3.5 3.4-.9 0-1.7-.5-2.3-.5s-1.4.5-2.3.5c-2 0-3.5-1.4-3.5-3.4Z"></path>
+  </symbol>
+  <symbol id="icon-bookings" viewBox="0 0 24 24">
+    <rect x="5" y="4" width="14" height="17" rx="2"></rect>
+    <path d="M9 4.5V3h6v1.5M8.5 10h7M8.5 14h4"></path>
+    <path d="m14.5 17 1.5 1.5 3-3"></path>
+  </symbol>
+  <symbol id="icon-rooms" viewBox="0 0 24 24">
+    <path d="M3 19v-8h18v8M3 16h18M6 11V7h5a3 3 0 0 1 3 3v1M3 19v2M21 19v2"></path>
+  </symbol>
+  <symbol id="icon-sterilization" viewBox="0 0 24 24">
+    <rect x="4" y="4" width="16" height="16" rx="4"></rect>
+    <path d="M12 8v8M8 12h8"></path>
+  </symbol>
+  <symbol id="icon-calendar" viewBox="0 0 24 24">
+    <rect x="3" y="5" width="18" height="16" rx="2"></rect>
+    <path d="M8 3v4M16 3v4M3 10h18"></path>
+    <path d="m8.5 15 2 2 4.5-4.5"></path>
+  </symbol>
+  <symbol id="icon-list" viewBox="0 0 24 24">
+    <path d="M9 6h11M9 12h11M9 18h11"></path>
+    <circle cx="4.5" cy="6" r="1"></circle>
+    <circle cx="4.5" cy="12" r="1"></circle>
+    <circle cx="4.5" cy="18" r="1"></circle>
+  </symbol>
+  <symbol id="icon-finance" viewBox="0 0 24 24">
+    <rect x="3" y="6" width="18" height="12" rx="2"></rect>
+    <circle cx="12" cy="12" r="3"></circle>
+    <path d="M7 9H5v2M17 15h2v-2"></path>
+  </symbol>
+  <symbol id="icon-users" viewBox="0 0 24 24">
+    <circle cx="9" cy="8" r="3"></circle>
+    <path d="M3.5 20c.3-4 2.2-6 5.5-6s5.2 2 5.5 6"></path>
+    <path d="M15.5 5.5a3 3 0 0 1 0 5.5M16 14c2.7.4 4.2 2.4 4.5 5"></path>
+  </symbol>
+  <symbol id="icon-settings" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="3"></circle>
+    <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6 1.7 1.7 0 0 0 10 3V2.8h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"></path>
+  </symbol>
+  <symbol id="icon-menu" viewBox="0 0 24 24">
+    <path d="M4 7h16M4 12h16M4 17h16"></path>
+  </symbol>
+  <symbol id="icon-close" viewBox="0 0 24 24">
+    <path d="m6 6 12 12M18 6 6 18"></path>
+  </symbol>
+  <symbol id="icon-logout" viewBox="0 0 24 24">
+    <path d="M10 5H5v14h5M14 8l4 4-4 4M8 12h10"></path>
+  </symbol>
+  <symbol id="icon-chevron-down" viewBox="0 0 24 24">
+    <path d="m6 9 6 6 6-6"></path>
+  </symbol>
+  <symbol id="icon-cat" viewBox="0 0 24 24">
+    <path d="M6.5 8.5 5 3.5l4 2A9 9 0 0 1 12 5a9 9 0 0 1 3 .5l4-2-1.5 5A7.5 7.5 0 0 1 19 13c0 4-3.1 7-7 7s-7-3-7-7a7.5 7.5 0 0 1 1.5-4.5Z"></path>
+    <path d="M9 12h.01M15 12h.01M10.5 15h3M4.5 14 2 13M19.5 14l2.5-1M4.7 16 2.5 17M19.3 16l2.2 1"></path>
+  </symbol>
+  <symbol id="icon-dog" viewBox="0 0 24 24">
+    <path d="M7 7.5A7 7 0 0 1 12 5a7 7 0 0 1 5 2.5V15a5 5 0 0 1-5 5 5 5 0 0 1-5-5Z"></path>
+    <path d="M7.5 7 4 5c-1 2-.8 5.8 3 7M16.5 7 20 5c1 2 .8 5.8-3 7M9.5 12h.01M14.5 12h.01M10 15h4M12 14v2"></path>
+  </symbol>
+  <symbol id="icon-printer" viewBox="0 0 24 24">
+    <path d="M6 9V3h12v6"></path>
+    <rect x="6" y="14" width="12" height="7" rx="1"></rect>
+    <path d="M6 17H4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2"></path>
+    <path d="M18 12h.01"></path>
+  </symbol>
+</svg>
+
+  <section id="login-view" class="login-page">
+    <form id="login-form" class="card login-card">
+      <div class="brand" style="margin-bottom:24px">
+        <div class="brand-mark" data-brand-logo aria-hidden="true">🐾</div>
+        <div><strong data-clinic-name-th>คลินิกบ้านหมอปอยรักษาสัตว์</strong><small data-clinic-name-en>Baan Mhor Poy Vet Clinic</small></div>
+      </div>
+      <h1 style="margin:0 0 5px">เข้าสู่ระบบ</h1>
+      <p style="color:var(--muted);margin-top:0">สำหรับเจ้าของ หมอ และพนักงาน</p>
+      <div class="field" style="margin-top:20px">
+        <label for="login-username">ชื่อผู้ใช้</label>
+        <input id="login-username" autocomplete="username" required>
+      </div>
+      <div class="field" style="margin-top:14px">
+        <label for="login-password">รหัสผ่าน</label>
+        <input id="login-password" type="password" autocomplete="current-password" required>
+      </div>
+      <div class="actions">
+        <button class="btn btn-primary" style="width:100%">เข้าสู่ระบบ</button>
+      </div>
+      <a href="/" style="display:block;text-align:center;color:var(--green-700);margin-top:15px">กลับหน้าจองของลูกค้า</a>
+    </form>
+  </section>
+
+  <div id="admin-view" class="admin-shell" hidden>
+    <aside id="admin-sidebar" class="sidebar" aria-label="เมนูหลังบ้าน">
+      <button id="sidebar-close" class="sidebar-close" type="button" aria-label="ปิดเมนู"><svg class="app-icon" aria-hidden="true"><use href="#icon-close"></use></svg></button>
+      <div class="brand">
+        <div class="brand-mark" data-brand-logo aria-hidden="true">🐾</div>
+        <div class="brand-text"><strong data-clinic-name-th>คลินิกบ้านหมอปอยรักษาสัตว์</strong><small data-clinic-name-en>Baan Mhor Poy Vet Clinic</small></div>
+      </div>
+      <nav class="nav" aria-label="เมนูหลังบ้าน">
+        <button data-view="dashboard" class="active"><span class="nav-icon"><svg class="app-icon" aria-hidden="true"><use href="#icon-dashboard"></use></svg></span><span class="nav-label">ภาพรวม</span></button>
+        <div class="nav-group open">
+          <button type="button" class="nav-parent" data-menu-toggle aria-expanded="true">
+            <span class="nav-icon"><svg class="app-icon" aria-hidden="true"><use href="#icon-boarding"></use></svg></span><span class="nav-label">ฝากเลี้ยง</span><span class="nav-chevron"><svg class="app-icon" aria-hidden="true"><use href="#icon-chevron-down"></use></svg></span>
+          </button>
+          <div class="nav-submenu">
+            <button data-view="bookings"><span class="nav-icon"><svg class="app-icon" aria-hidden="true"><use href="#icon-bookings"></use></svg></span><span class="nav-label">รายการจองฝากเลี้ยง</span></button>
+            <button data-view="boarding-operations"><span class="nav-icon"><svg class="app-icon" aria-hidden="true"><use href="#icon-list"></use></svg></span><span class="nav-label">เช็กอิน–เช็กเอาท์</span></button>
+            <button data-view="cat-rooms"><span class="nav-icon"><svg class="app-icon" aria-hidden="true"><use href="#icon-cat"></use></svg></span><span class="nav-label">ห้องพักแมว</span></button>
+            <button data-view="dog-rooms"><span class="nav-icon"><svg class="app-icon" aria-hidden="true"><use href="#icon-dog"></use></svg></span><span class="nav-label">ห้องพักสุนัข</span></button>
+          </div>
+        </div>
+        <div class="nav-group open">
+          <button type="button" class="nav-parent" data-menu-toggle aria-expanded="true">
+            <span class="nav-icon"><svg class="app-icon" aria-hidden="true"><use href="#icon-sterilization"></use></svg></span><span class="nav-label">ทำหมัน</span><span class="nav-chevron"><svg class="app-icon" aria-hidden="true"><use href="#icon-chevron-down"></use></svg></span>
+          </button>
+          <div class="nav-submenu">
+            <button data-view="sterilization-calendar"><span class="nav-icon"><svg class="app-icon" aria-hidden="true"><use href="#icon-calendar"></use></svg></span><span class="nav-label">ปฏิทินคิวทำหมัน</span></button>
+            <button data-view="sterilization-list"><span class="nav-icon"><svg class="app-icon" aria-hidden="true"><use href="#icon-list"></use></svg></span><span class="nav-label">รายการนัดทำหมัน</span></button>
+          </div>
+        </div>
+        <button data-view="payments"><span class="nav-icon"><svg class="app-icon" aria-hidden="true"><use href="#icon-finance"></use></svg></span><span class="nav-label">การเงิน</span></button>
+        <button data-view="users"><span class="nav-icon"><svg class="app-icon" aria-hidden="true"><use href="#icon-users"></use></svg></span><span class="nav-label">ผู้ใช้งาน</span></button>
+        <button data-view="settings"><span class="nav-icon"><svg class="app-icon" aria-hidden="true"><use href="#icon-settings"></use></svg></span><span class="nav-label">ตั้งค่า</span></button>
+      </nav>
+    </aside>
+    <button id="sidebar-backdrop" class="sidebar-backdrop" type="button" aria-label="ปิดเมนู" tabindex="-1"></button>
+
+    <main class="admin-main">
+      <header class="admin-top">
+        <button id="sidebar-toggle" class="sidebar-toggle" type="button"
+          aria-label="เปิดเมนู" aria-controls="admin-sidebar" aria-expanded="false"><svg class="app-icon" aria-hidden="true"><use href="#icon-menu"></use></svg></button>
+        <div class="admin-title">
+          <small>สถานบริการ / หลังบ้าน</small>
+          <strong id="view-title" style="display:block">ภาพรวมสถานบริการ</strong>
+        </div>
+        <div class="admin-user-actions">
+          <span id="admin-user"></span>
+          <button id="logout-btn" class="btn btn-light btn-small"><svg class="app-icon" aria-hidden="true"><use href="#icon-logout"></use></svg>ออกจากระบบ</button>
+        </div>
+      </header>
+
+      <div class="admin-content">
+        <section id="view-dashboard" class="admin-section">
+          <div class="section-head"><h2>สรุปงานวันนี้</h2><p>ข้อมูลจาก Google Sheets และคำขอที่กันห้องไว้</p></div>
+          <div id="dashboard-metrics" class="metric-grid"></div>
+          <div class="card">
+            <div class="card-head-actions">
+              <div><h3 style="margin-bottom:3px">คำขอรออนุมัติห้อง</h3><p class="hint">รายการเหล่านี้กันความจุไว้แล้ว</p></div>
+              <button class="btn btn-primary btn-small" data-go="bookings">เปิดรายการจอง</button>
+            </div>
+            <div id="pending-preview"></div>
+          </div>
+        </section>
+
+        <section id="view-bookings" class="admin-section" hidden>
+          <div class="section-head section-head-actions">
+            <div><h2>รายการจองฝากเลี้ยง</h2><p>ตรวจ อนุมัติ กำหนดห้อง และเช็กอิน–เช็กเอาท์</p></div>
+            <button id="new-booking-btn" class="btn btn-primary">+ รับจองหลังบ้าน</button>
+          </div>
+          <div class="card" style="padding:16px;margin-bottom:18px">
+            <div class="form-grid three">
+              <div class="field"><label for="booking-search">ค้นหา</label><input id="booking-search" placeholder="รหัส ชื่อ หรือเบอร์โทร"></div>
+              <div class="field"><label for="booking-status-filter">สถานะ</label>
+                <select id="booking-status-filter"><option value="">ทุกสถานะ</option><option value="PENDING_APPROVAL">รออนุมัติห้อง</option><option value="APPROVED_AWAITING_DEPOSIT">รอมัดจำ</option><option value="CONFIRMED">ยืนยันแล้ว</option><option value="CHECKED_IN">เช็กอินแล้ว</option><option value="CHECKED_OUT">เช็กเอาต์แล้ว</option></select>
+              </div>
+              <div class="field" style="justify-content:flex-end"><button id="refresh-bookings-btn" class="btn btn-light">รีเฟรชรายการ</button></div>
+            </div>
+          </div>
+          <div id="bookings-table"></div>
+        </section>
+
+        <section id="view-boarding-operations" class="admin-section" hidden>
+          <div class="section-head"><h2>เช็กอิน–เช็กเอาท์</h2><p>ติดตามรายการที่รอเช็คอิน สัตว์ที่กำลังเข้าพัก และรายการรอเช็กเอาท์ทุกวัน</p></div>
+          <div class="tab-list" role="tablist" aria-label="สถานะเช็กอินและเช็กเอาต์">
+            <button class="tab operation-tab" data-operation="checkin" aria-selected="true">รอเช็คอิน</button>
+            <button class="tab operation-tab" data-operation="active" aria-selected="false">กำลังเข้าพัก/รอเช็กเอาท์</button>
+            <button class="tab operation-tab" data-operation="completed" aria-selected="false">ดำเนินการเสร็จแล้ว</button>
+          </div>
+          <div class="tab-list operation-species-list" role="tablist" aria-label="กรองตามชนิดสัตว์">
+            <button class="tab operation-species-tab" data-species="" aria-selected="true">ทั้งหมด</button>
+            <button class="tab operation-species-tab" data-species="CAT" aria-selected="false">แมว</button>
+            <button class="tab operation-species-tab" data-species="DOG" aria-selected="false">สุนัข</button>
+          </div>
+          <div id="boarding-operations-list"></div>
+        </section>
+
+        <section id="view-cat-rooms" class="admin-section" hidden>
+          <div class="section-head"><h2>ห้องพักแมว</h2><p>CAT01–CAT11 สำหรับแมว</p></div>
+          <div class="card room-date-toolbar">
+            <div>
+              <span class="hint">ดูสถานะห้องตามคืนที่เลือก</span>
+              <strong id="cat-room-date-label">วันนี้</strong>
+            </div>
+            <div class="room-date-actions">
+              <button class="btn btn-light btn-small room-prev-date" type="button">‹ วันก่อน</button>
+              <button class="btn btn-light btn-small room-today-date" type="button">วันนี้</button>
+              <label class="room-date-picker"><span class="visually-hidden">เลือกวันที่ดูห้อง</span><input id="cat-room-date" class="room-date-input" type="date"></label>
+              <button class="btn btn-light btn-small room-next-date" type="button">วันถัดไป ›</button>
+            </div>
+          </div>
+          <div class="room-legend" aria-label="คำอธิบายสีสถานะ">
+            <span><i class="legend-dot available"></i>ว่าง</span>
+            <span><i class="legend-dot pending"></i>รออนุมัติห้อง</span>
+            <span><i class="legend-dot occupied"></i>อนุมัติแล้ว/กำลังเข้าพัก</span>
+            <span><i class="legend-dot unavailable"></i>ทำความสะอาด/ซ่อม/ปิดใช้</span>
+          </div>
+          <div id="cat-rooms-grid" class="metric-grid rooms-grid"></div>
+        </section>
+
+        <section id="view-dog-rooms" class="admin-section" hidden>
+          <div class="section-head"><h2>ห้องพักสุนัข</h2><p>DOG01–DOG07 สำหรับสุนัข</p></div>
+          <div class="card room-date-toolbar">
+            <div><span class="hint">ดูสถานะห้องตามคืนที่เลือก</span><strong id="dog-room-date-label">วันนี้</strong></div>
+            <div class="room-date-actions">
+              <button class="btn btn-light btn-small room-prev-date" type="button">‹ วันก่อน</button>
+              <button class="btn btn-light btn-small room-today-date" type="button">วันนี้</button>
+              <label class="room-date-picker"><span class="visually-hidden">เลือกวันที่ดูห้อง</span><input id="dog-room-date" class="room-date-input" type="date"></label>
+              <button class="btn btn-light btn-small room-next-date" type="button">วันถัดไป ›</button>
+            </div>
+          </div>
+          <div class="room-legend" aria-label="คำอธิบายสีสถานะ">
+            <span><i class="legend-dot available"></i>ว่าง</span><span><i class="legend-dot pending"></i>รออนุมัติห้อง</span>
+            <span><i class="legend-dot occupied"></i>อนุมัติแล้ว/กำลังเข้าพัก</span><span><i class="legend-dot unavailable"></i>ทำความสะอาด/ซ่อม/ปิดใช้</span>
+          </div>
+          <div id="dog-rooms-grid" class="metric-grid rooms-grid"></div>
+        </section>
+
+        <section id="view-sterilization-calendar" class="admin-section" hidden>
+          <div class="section-head section-head-actions">
+            <div><h2>ปฏิทินคิวทำหมัน</h2><p>รับนัดได้สูงสุด 4 ตัวต่อวัน และสร้างรายการได้เฉพาะหลังบ้าน</p></div>
+            <button class="btn btn-primary new-sterilization-btn">+ รับจองทำหมัน</button>
+          </div>
+          <div class="card" style="padding:16px;margin-bottom:18px">
+            <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
+              <div class="field" style="max-width:260px">
+                <label for="sterilization-month">เลือกเดือน</label>
+                <input id="sterilization-month" type="month">
+              </div>
+              <button id="manage-sterilization-holidays-btn" class="btn btn-light" type="button" hidden>
+                ตั้งวันหยุดทำหมัน
+              </button>
+            </div>
+          </div>
+          <div id="sterilization-calendar"></div>
+        </section>
+
+        <section id="view-sterilization-list" class="admin-section" hidden>
+          <div class="section-head section-head-actions">
+            <div><h2>รายการนัดทำหมัน</h2><p>ค้นหา ตรวจสอบ และเปลี่ยนสถานะนัดหมาย</p></div>
+            <button class="btn btn-primary new-sterilization-btn">+ รับจองทำหมัน</button>
+          </div>
+          <div class="card" style="padding:16px;margin-bottom:18px">
+            <div class="form-grid three">
+              <div class="field"><label for="sterilization-search">ค้นหา</label><input id="sterilization-search" placeholder="รหัส ชื่อผู้จอง เบอร์โทร หรือชื่อสัตว์"></div>
+              <div class="field"><label for="sterilization-date-filter">วันที่นัด</label><input id="sterilization-date-filter" type="date"></div>
+              <div class="field"><label for="sterilization-status-filter">สถานะ</label>
+                <select id="sterilization-status-filter">
+                  <option value="">ทุกสถานะ</option>
+                  <option value="PENDING_CONFIRMATION">รอยืนยันนัด</option>
+                  <option value="CONFIRMED">ยืนยันนัดแล้ว</option>
+                  <option value="ARRIVED">มาถึงคลินิกแล้ว</option>
+                  <option value="COMPLETED">ดำเนินการเสร็จแล้ว</option>
+                  <option value="CANCELLED">ยกเลิก</option>
+                  <option value="NO_SHOW">ไม่มาตามนัด</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div id="sterilization-list"></div>
+        </section>
+
+        <section id="view-payments" class="admin-section" hidden>
+          <div class="section-head"><h2>การเงินและมัดจำ</h2><p>มัดจำใช้เฉพาะรายการ LINE และต้องตรวจสลิปโดยพนักงาน</p></div>
+          <div class="card"><div class="empty">เปิดรายละเอียดรายการจองที่มีสถานะ “ส่งสลิปแล้ว” เพื่อตรวจรับมัดจำ<br>การบันทึกคืนส่วนต่างทำได้เฉพาะเจ้าของระบบ</div></div>
+        </section>
+
+        <section id="view-users" class="admin-section" hidden>
+          <div class="section-head section-head-actions">
+            <div><h2>ผู้ใช้งานและสิทธิ์</h2><p>เจ้าของระบบเท่านั้นที่สร้างและปิดบัญชีได้</p></div>
+            <button id="new-user-btn" class="btn btn-primary">+ เพิ่มผู้ใช้</button>
+          </div>
+          <div id="users-content" class="card"></div>
+        </section>
+
+        <section id="view-settings" class="admin-section" hidden>
+          <div class="section-head"><h2>ตั้งค่าระบบ</h2><p>ข้อมูลติดต่อ การชำระเงิน และ LINE OA</p></div>
+          <div id="settings-content"></div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <div id="modal-root"></div>
+  <script>
+  function gasCall(name) {
+    var args = Array.prototype.slice.call(arguments, 1);
+    return fetch('/api', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json; charset=utf-8' },
+      body: JSON.stringify({ action: name, args: args }),
+      credentials: 'same-origin'
+    }).then(function(response) {
+      return response.json().catch(function() {
+        throw new Error('ระบบส่งผลลัพธ์ไม่ถูกต้อง กรุณาลองใหม่');
+      }).then(function(payload) {
+        if (!response.ok || !payload.ok) {
+          throw new Error(payload.error || 'ระบบไม่สามารถดำเนินการได้ กรุณาลองใหม่');
+        }
+        return payload.data;
+      });
+    });
+  }
+
+  function showToast(message, isError) {
+    var old = document.querySelector('.toast');
+    if (old) old.remove();
+    var toast = document.createElement('div');
+    toast.className = 'toast';
+    if (isError) toast.style.background = '#a33a33';
+    toast.textContent = message;
+    toast.setAttribute('role', 'status');
+    document.body.appendChild(toast);
+    setTimeout(function() { toast.remove(); }, 5000);
+  }
+
+  function setBusy(button, busy, text) {
+    if (!button) return;
+    if (busy) {
+      button.dataset.originalText = button.textContent;
+      button.disabled = true;
+      button.innerHTML = '<span class="loading" aria-hidden="true"></span> กำลังดำเนินการ';
+    } else {
+      button.disabled = false;
+      button.textContent = button.dataset.originalText || text || 'ดำเนินการ';
+    }
+  }
+
+  function escapeHtml(value) {
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  function toCanonicalDate(value) {
+    var raw = String(value == null ? '' : value).trim();
+    if (!raw) return '';
+    var year;
+    var month;
+    var day;
+    var iso = /^(\d{4})-(\d{1,2})-(\d{1,2})(?:[T\s].*)?$/.exec(raw);
+    var yearFirst = /^(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})$/.exec(raw);
+    var dayFirst = /^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/.exec(raw);
+    if (iso) {
+      year = Number(iso[1]); month = Number(iso[2]); day = Number(iso[3]);
+    } else if (yearFirst) {
+      year = Number(yearFirst[1]); month = Number(yearFirst[2]); day = Number(yearFirst[3]);
+    } else if (dayFirst) {
+      day = Number(dayFirst[1]); month = Number(dayFirst[2]); year = Number(dayFirst[3]);
+    } else {
+      throw new Error('รูปแบบวันที่ไม่ถูกต้อง กรุณาใช้ วัน-เดือน-ปี');
+    }
+    if (year >= 2400) year -= 543;
+    var date = new Date(Date.UTC(year, month - 1, day));
+    if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 ||
+        date.getUTCDate() !== day) {
+      throw new Error('วันที่ไม่ถูกต้อง');
+    }
+    return String(year).padStart(4, '0') + '-' + String(month).padStart(2, '0') +
+      '-' + String(day).padStart(2, '0');
+  }
+
+  function formatDateDisplay(value) {
+    if (!value) return '-';
+    try {
+      var parts = toCanonicalDate(value).split('-');
+      return parts[2] + '-' + parts[1] + '-' + parts[0];
+    } catch (error) {
+      return String(value);
+    }
+  }
+
+  function iconMarkup(name) {
+    var allowed = ['dashboard', 'boarding', 'bookings', 'rooms', 'sterilization',
+      'calendar', 'list', 'finance', 'users', 'settings', 'menu', 'close',
+      'logout', 'chevron-down', 'cat', 'dog', 'printer'];
+    if (allowed.indexOf(name) === -1) return '';
+    return '<svg class="app-icon" aria-hidden="true" focusable="false"><use href="#icon-' +
+      name + '"></use></svg>';
+  }
+
+  function applyBranding(config) {
+    var data = config || {};
+    var thaiName = data.clinicNameTh || data.clinicName || 'คลินิกบ้านหมอปอยรักษาสัตว์';
+    var englishName = data.clinicNameEn || 'Baan Mhor Poy Vet Clinic';
+    document.querySelectorAll('[data-clinic-name-th]').forEach(function(element) {
+      element.textContent = thaiName;
+    });
+    document.querySelectorAll('[data-clinic-name-en]').forEach(function(element) {
+      element.textContent = englishName;
+    });
+    document.querySelectorAll('[data-brand-logo]').forEach(function(element) {
+      if (!data.logoDataUrl) return;
+      element.textContent = '';
+      var image = document.createElement('img');
+      image.className = 'brand-logo-image';
+      image.src = data.logoDataUrl;
+      image.alt = 'โลโก้ ' + thaiName;
+      element.appendChild(image);
+    });
+    document.title = thaiName;
+  }
+
+  function fileToPayload(file, maxBytes, maxSizeLabel) {
+    if (!file) return Promise.resolve(null);
+    var limit = maxBytes || 5 * 1024 * 1024;
+    if (file.size > limit) {
+      return Promise.reject(new Error('ไฟล์ต้องมีขนาดไม่เกิน ' + (maxSizeLabel || '5 MB')));
+    }
+    return new Promise(function(resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function() {
+        resolve({ name: file.name, mimeType: file.type, data: reader.result });
+      };
+      reader.onerror = function() { reject(new Error('อ่านไฟล์ไม่สำเร็จ')); };
+      reader.readAsDataURL(file);
+    });
+  }
+</script>
+
+  <script>
+  var adminState = {
+    token: localStorage.getItem('bmpAdminToken') || '',
+    user: null,
+    permissions: [],
+    bookings: [],
+    rooms: [],
+    roomDate: '',
+    sterilizations: [],
+    sterilizationCalendar: null,
+    boardingOperationMode: 'checkin',
+    boardingSpecies: ''
+  };
+
+  document.addEventListener('DOMContentLoaded', function() {
+    loadPublicBranding();
+    initResponsiveAdminNavigation();
+    document.getElementById('login-form').addEventListener('submit', handleLogin);
+    document.getElementById('logout-btn').addEventListener('click', handleLogout);
+    document.getElementById('refresh-bookings-btn').addEventListener('click', loadBookings);
+    document.getElementById('booking-search').addEventListener('input', renderBookings);
+    document.getElementById('booking-status-filter').addEventListener('change', renderBookings);
+    document.getElementById('new-booking-btn').addEventListener('click', showStaffBookingModal);
+    document.getElementById('new-user-btn').addEventListener('click', showNewUserModal);
+    document.querySelectorAll('.room-date-input').forEach(function(input) {
+      input.addEventListener('change', function(event) { loadRoomsForDate(event.target.value); });
+    });
+    document.querySelectorAll('.room-prev-date').forEach(function(button) {
+      button.addEventListener('click', function() { loadRoomsForDate(addDaysIso(adminState.roomDate, -1)); });
+    });
+    document.querySelectorAll('.room-today-date').forEach(function(button) {
+      button.addEventListener('click', function() { loadRoomsForDate(adminState.todayIso); });
+    });
+    document.querySelectorAll('.room-next-date').forEach(function(button) {
+      button.addEventListener('click', function() { loadRoomsForDate(addDaysIso(adminState.roomDate, 1)); });
+    });
+    document.querySelectorAll('.operation-tab').forEach(function(button) {
+      button.addEventListener('click', function() {
+        document.querySelectorAll('.operation-tab').forEach(function(tab) {
+          tab.setAttribute('aria-selected', String(tab === button));
+        });
+        adminState.boardingOperationMode = button.dataset.operation;
+        renderBoardingOperations();
+      });
+    });
+    document.querySelectorAll('.operation-species-tab').forEach(function(button) {
+      button.addEventListener('click', function() {
+        document.querySelectorAll('.operation-species-tab').forEach(function(tab) {
+          tab.setAttribute('aria-selected', String(tab === button));
+        });
+        adminState.boardingSpecies = button.dataset.species || '';
+        renderBoardingOperations();
+      });
+    });
+    document.querySelectorAll('.nav [data-view]').forEach(function(button) {
+      button.addEventListener('click', function() { showView(button.dataset.view); });
+    });
+    document.querySelectorAll('[data-menu-toggle]').forEach(function(button) {
+      button.addEventListener('click', function() {
+        var group = button.closest('.nav-group');
+        var isOpen = group.classList.toggle('open');
+        button.setAttribute('aria-expanded', String(isOpen));
+      });
+    });
+    document.querySelectorAll('[data-go]').forEach(function(button) {
+      button.addEventListener('click', function() { showView(button.dataset.go); });
+    });
+    document.querySelectorAll('.new-sterilization-btn').forEach(function(button) {
+      button.addEventListener('click', function() { showSterilizationModal(); });
+    });
+    document.getElementById('manage-sterilization-holidays-btn')
+      .addEventListener('click', showSterilizationHolidayModal);
+    document.getElementById('sterilization-search')
+      .addEventListener('input', renderSterilizations);
+    document.getElementById('sterilization-date-filter')
+      .addEventListener('change', renderSterilizations);
+    document.getElementById('sterilization-status-filter')
+      .addEventListener('change', renderSterilizations);
+    document.getElementById('sterilization-month').value = currentMonthIso();
+    document.getElementById('sterilization-month')
+      .addEventListener('change', loadSterilizationCalendar);
+    if (adminState.token) bootstrapAdmin();
+  });
+
+  async function loadPublicBranding() {
+    try { applyBranding(await gasCall('getPublicConfig')); } catch (error) {}
+  }
+
+  function initResponsiveAdminNavigation() {
+    document.getElementById('sidebar-toggle').addEventListener('click', openAdminSidebar);
+    document.getElementById('sidebar-close').addEventListener('click', closeAdminSidebar);
+    document.getElementById('sidebar-backdrop').addEventListener('click', closeAdminSidebar);
+    window.addEventListener('resize', function() {
+      if (window.innerWidth > 1024) closeAdminSidebar();
+    });
+    document.addEventListener('keydown', function(event) {
+      if (event.key === 'Escape') closeAdminSidebar();
+    });
+  }
+
+  function openAdminSidebar() {
+    document.getElementById('admin-view').classList.add('sidebar-open');
+    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', 'true');
+    document.body.classList.add('navigation-open');
+  }
+
+  function closeAdminSidebar() {
+    document.getElementById('admin-view').classList.remove('sidebar-open');
+    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', 'false');
+    document.body.classList.remove('navigation-open');
+  }
+
+  async function handleLogin(event) {
+    event.preventDefault();
+    var button = event.submitter;
+    setBusy(button, true);
+    try {
+      var result = await gasCall(
+        'login',
+        document.getElementById('login-username').value,
+        document.getElementById('login-password').value
+      );
+      adminState.token = result.token;
+      localStorage.setItem('bmpAdminToken', result.token);
+      await bootstrapAdmin();
+    } catch (error) { showToast(error.message, true); }
+    finally { setBusy(button, false, 'เข้าสู่ระบบ'); }
+  }
+
+  async function bootstrapAdmin() {
+    try {
+      var data = await gasCall('getAdminBootstrap', adminState.token);
+      adminState.user = data.user;
+      adminState.permissions = data.permissions;
+      adminState.rooms = data.rooms;
+      adminState.roomDate = data.roomDate;
+      adminState.todayIso = data.roomDate;
+      document.getElementById('manage-sterilization-holidays-btn').hidden =
+        adminState.permissions.indexOf('sterilization:holiday') === -1;
+      document.getElementById('login-view').hidden = true;
+      document.getElementById('admin-view').hidden = false;
+      document.getElementById('admin-user').textContent =
+        data.user.displayName + ' · ' + roleLabel(data.user.role);
+      renderDashboard(data.dashboard);
+      renderRooms();
+      await loadBookings();
+      await loadUsers();
+      await loadSettings();
+      if (data.user.mustChangePassword) showChangePasswordModal();
+    } catch (error) {
+      localStorage.removeItem('bmpAdminToken');
+      adminState.token = '';
+      document.getElementById('login-view').hidden = false;
+      document.getElementById('admin-view').hidden = true;
+      if (error.message) showToast(error.message, true);
+    }
+  }
+
+  async function handleLogout() {
+    try { await gasCall('logout', adminState.token); } catch (error) {}
+    localStorage.removeItem('bmpAdminToken');
+    location.reload();
+  }
+
+  function showView(name) {
+    document.querySelectorAll('.admin-section').forEach(function(section) { section.hidden = true; });
+    document.getElementById('view-' + name).hidden = false;
+    document.querySelectorAll('.nav [data-view]').forEach(function(button) {
+      button.classList.toggle('active', button.dataset.view === name);
+    });
+    var titles = {
+      dashboard:'ภาพรวมสถานบริการ',
+      bookings:'รายการจองฝากเลี้ยง',
+      'boarding-operations':'เช็กอิน–เช็กเอาต์',
+      'cat-rooms':'ห้องพักแมว',
+      'dog-rooms':'ห้องพักสุนัข',
+      'sterilization-calendar':'ปฏิทินคิวทำหมัน',
+      'sterilization-list':'รายการนัดทำหมัน',
+      payments:'การเงินและมัดจำ',
+      users:'ผู้ใช้งาน',
+      settings:'ตั้งค่าระบบ'
+    };
+    document.getElementById('view-title').textContent = titles[name] || name;
+    if (name === 'bookings') loadBookings();
+    if (name === 'boarding-operations') {
+      adminState.boardingOperationMode = 'checkin';
+      adminState.boardingSpecies = '';
+      document.querySelectorAll('.operation-tab').forEach(function(tab) {
+        tab.setAttribute('aria-selected', String(tab.dataset.operation === 'checkin'));
+      });
+      document.querySelectorAll('.operation-species-tab').forEach(function(tab) {
+        tab.setAttribute('aria-selected', String(!tab.dataset.species));
+      });
+      loadBookings().then(renderBoardingOperations);
+    }
+    if (name === 'cat-rooms' || name === 'dog-rooms') loadRoomsForDate(adminState.roomDate || adminState.todayIso);
+    if (name === 'sterilization-calendar') loadSterilizationCalendar();
+    if (name === 'sterilization-list') loadSterilizations();
+    if (window.innerWidth <= 1024) closeAdminSidebar();
+  }
+
+  function renderDashboard(data) {
+    var items = [
+      ['รออนุมัติห้อง', data.pendingApproval, 'คำขอที่กันห้องแล้ว'],
+      ['รอมัดจำ LINE', data.awaitingDeposit, 'มีเวลา 1 ชั่วโมง'],
+      ['เช็กอินวันนี้', data.checkInToday, 'รายการนัดเข้า'],
+      ['เช็กเอาต์วันนี้', data.checkOutToday, 'รายการนัดรับกลับ']
+    ];
+    document.getElementById('dashboard-metrics').innerHTML = items.map(function(item) {
+      return '<div class="card"><span class="hint">' + item[0] + '</span><strong style="display:block;font-size:2rem;margin:7px 0">' +
+        item[1] + '</strong><span class="hint">' + item[2] + '</span></div>';
+    }).join('');
+  }
+
+  async function loadBookings(event) {
+    if (event) event.preventDefault();
+    try {
+      adminState.bookings = await gasCall('listBookings', adminState.token, {});
+      renderBookings();
+      renderPendingPreview();
+      if (!document.getElementById('view-boarding-operations').hidden) {
+        renderBoardingOperations();
+      }
+    } catch (error) { showToast(error.message, true); }
+  }
+
+  function filteredBookings() {
+    var search = document.getElementById('booking-search').value.toLowerCase();
+    var status = document.getElementById('booking-status-filter').value;
+    return adminState.bookings.filter(function(item) {
+      if (status && item.status !== status) return false;
+      if (search && [item.bookingCode, item.customerName, item.phone]
+        .concat(item.petNames || [])
+        .join(' ').toLowerCase().indexOf(search) === -1) return false;
+      return true;
+    });
+  }
+
+  function renderBookings() {
+    var rows = filteredBookings();
+    var target = document.getElementById('bookings-table');
+    if (!rows.length) {
+      target.innerHTML = '<div class="card empty">ยังไม่พบรายการตามตัวกรอง</div>';
+      return;
+    }
+    target.innerHTML =
+      '<div class="data-table-wrap"><table><thead><tr><th>รหัส</th><th>ผู้จอง</th><th>สัตว์</th><th>วันเข้าพัก</th><th>ห้อง</th><th>สถานะ</th><th></th></tr></thead><tbody>' +
+      rows.map(function(item) {
+        return '<tr><td><strong>' + escapeHtml(item.bookingCode) + '</strong><br><small>' + escapeHtml(item.channel) + '</small></td>' +
+          '<td>' + escapeHtml(item.customerName) + '<br><small>' + escapeHtml(item.phone) + '</small></td>' +
+          '<td>' + (item.species === 'CAT' ? 'แมว' : 'สุนัข') + ' ' + item.petCount + ' ตัว</td>' +
+          '<td>' + escapeHtml(formatDateDisplay(item.checkInDate)) + '<br><small>ถึง ' + escapeHtml(formatDateDisplay(item.checkOutDate)) + '</small></td>' +
+          '<td>' + escapeHtml(item.roomId || 'ยังไม่กำหนด') + '</td>' +
+          '<td><span class="status ' + (item.status === 'PENDING_APPROVAL' ? 'pending' : '') + '">' + escapeHtml(item.statusLabel) + '</span></td>' +
+          '<td><button class="btn btn-light btn-small" onclick="openBookingDetail(\'' + item.bookingId + '\')">เปิด</button></td></tr>';
+      }).join('') + '</tbody></table></div>';
+  }
+
+  function renderPendingPreview() {
+    var rows = adminState.bookings.filter(function(item) { return item.status === 'PENDING_APPROVAL'; }).slice(0, 5);
+    document.getElementById('pending-preview').innerHTML = rows.length ?
+      '<div class="data-table-wrap"><table><thead><tr><th>รหัส</th><th>ลูกค้า</th><th>ประเภท</th><th></th></tr></thead><tbody>' +
+      rows.map(function(item) {
+        return '<tr><td>' + escapeHtml(item.bookingCode) + '</td><td>' + escapeHtml(item.customerName) +
+          '</td><td>' + (item.species === 'CAT' ? 'แมว' : 'สุนัข') + '</td><td><button class="btn btn-light btn-small" onclick="openBookingDetail(\'' +
+          item.bookingId + '\')">ตรวจสอบ</button></td></tr>';
+      }).join('') + '</tbody></table></div>' :
+      '<div class="empty">ไม่มีคำขอที่รออนุมัติ</div>';
+  }
+
+  async function openBookingDetail(bookingId) {
+    try {
+      var detail = await gasCall('getBookingDetail', adminState.token, bookingId);
+      var booking = detail.booking;
+      var actions = [];
+      if (booking.status === 'PENDING_APPROVAL') {
+        actions.push('<button class="btn btn-primary" onclick="bookingAction(\'approveBooking\',\'' + bookingId + '\')">อนุมัติห้อง</button>');
+        actions.push('<button class="btn btn-danger" onclick="rejectCurrent(\'' + bookingId + '\')">ไม่อนุมัติ</button>');
+      }
+      if (booking.status === 'APPROVED_AWAITING_DEPOSIT' && booking.paymentStatus === 'SUBMITTED') {
+        var submitted = detail.payments.filter(function(p) { return p.status === 'SUBMITTED'; })[0];
+        if (submitted) actions.push('<button class="btn btn-primary" onclick="verifyCurrent(\'' + bookingId + '\',\'' + submitted.paymentId + '\')">ตรวจรับมัดจำ</button>');
+      }
+      if (booking.status === 'CONFIRMED') {
+        actions.push('<button class="btn btn-primary" onclick="showCheckInModal(\'' + bookingId + '\')">เช็กอิน</button>');
+      }
+      if (booking.status === 'CHECKED_IN') {
+        actions.push('<button class="btn btn-primary" onclick="showCheckOutModal(\'' + bookingId + '\')">เช็กเอาต์</button>');
+      }
+      if (booking.status === 'CHECKED_OUT') {
+        actions.push('<button class="btn btn-primary" onclick="printReceipt(\'' + bookingId + '\')">พิมพ์ใบเสร็จ</button>');
+      }
+      showModal(
+        '<div class="modal-head"><div><p class="eyebrow">รายละเอียดการจอง</p><h2>' + escapeHtml(booking.bookingCode) +
+        '</h2></div><button class="icon-btn" onclick="closeModal()" aria-label="ปิด">' + iconMarkup('close') + '</button></div>' +
+        '<p><span class="status ' + (booking.status === 'PENDING_APPROVAL' ? 'pending' : '') + '">' +
+        escapeHtml(booking.statusLabel) + '</span></p>' +
+        '<div class="detail-grid">' +
+          detailItem('ผู้จอง', booking.customerName + ' · ' + booking.phone) +
+          detailItem('สัตว์', (booking.species === 'CAT' ? 'แมว' : 'สุนัข') + ' ' + booking.petCount + ' ตัว') +
+          detailItem('วันเข้าพัก', formatDateDisplay(booking.checkInDate) + ' ถึง ' + formatDateDisplay(booking.checkOutDate)) +
+          bookingRoomSelector_(booking, detail.assignableRooms || []) +
+          detailItem('ค่าที่พัก', Number(booking.lodging_total || 0).toLocaleString('th-TH') + ' บาท') +
+          detailItem('การชำระเงิน', booking.paymentStatus) +
+          detailItem('ตรวจสุขภาพ', booking.healthReviewStatus) +
+          detailItem('ค่าใช้จ่ายรวม', Number(detail.settlement.total).toLocaleString('th-TH') + ' บาท') +
+          detailItem('มัดจำที่รับแล้ว', Number(detail.settlement.depositPaid || 0).toLocaleString('th-TH') + ' บาท') +
+        '</div>' +
+        '<h3 style="margin-top:20px">สัตว์เลี้ยง</h3><p>' +
+        detail.pets.map(function(p) { return escapeHtml(p.name) + (p.weight_kg ? ' (' + p.weight_kg + ' กก.)' : ''); }).join(', ') +
+        '</p><div class="actions">' + actions.join('') + '</div>'
+      );
+    } catch (error) { showToast(error.message, true); }
+  }
+
+  function detailItem(label, value) {
+    return '<div class="detail-item"><span>' + escapeHtml(label) + '</span><strong>' + escapeHtml(value) + '</strong></div>';
+  }
+
+  function bookingRoomSelector_(booking, assignableRooms) {
+    if (booking.bookingType === 'EMERGENCY_OWN_CAGE') {
+      return detailItem('ห้องพัก', 'กรงของเจ้าของ');
+    }
+    if (adminState.permissions.indexOf('booking:assign') === -1) {
+      return detailItem('ห้องพัก', booking.roomId || 'ยังไม่กำหนด');
+    }
+    var rooms = (assignableRooms || []).slice();
+    if (booking.roomId && !rooms.some(function(room) { return room.roomId === booking.roomId; })) {
+      rooms.unshift({
+        roomId: booking.roomId,
+        roomName: booking.roomId,
+        selected: true
+      });
+    }
+    var options = ['<option value="">ยังไม่กำหนด</option>'].concat(rooms.map(function(room) {
+      return '<option value="' + escapeHtml(room.roomId) + '"' +
+        (room.roomId === booking.roomId || room.selected ? ' selected' : '') + '>' +
+        escapeHtml(room.roomName || room.roomId) + '</option>';
+    })).join('');
+    return '<div class="detail-item booking-room-field"><label for="booking-room-select">ห้องพัก</label>' +
+      '<select id="booking-room-select" data-previous-value="' + escapeHtml(booking.roomId || '') +
+      '" onchange="assignBookingRoomFromSelect(\'' + booking.bookingId + '\',this)">' + options + '</select>' +
+      '<small>แสดงเฉพาะห้องของสัตว์ชนิดนี้ที่ว่างตลอดช่วงวันจอง</small></div>';
+  }
+
+  async function assignBookingRoomFromSelect(bookingId, select) {
+    var previousValue = select.dataset.previousValue || '';
+    if (!select.dataset.previousValue) select.dataset.previousValue = previousValue;
+    if (!select.value) {
+      showToast('กรุณาเลือกห้องพัก', true);
+      select.value = previousValue;
+      return;
+    }
+    select.disabled = true;
+    try {
+      await gasCall('assignRoom', adminState.token, bookingId, select.value);
+      select.dataset.previousValue = select.value;
+      showToast('กำหนดห้องพักแล้ว');
+      await bootstrapAdmin();
+    } catch (error) {
+      select.value = previousValue;
+      showToast(error.message, true);
+    } finally {
+      select.disabled = false;
+    }
+  }
+
+  async function bookingAction(functionName, bookingId) {
+    try {
+      await gasCall(functionName, adminState.token, bookingId);
+      closeModal(); showToast('บันทึกเรียบร้อย'); await bootstrapAdmin();
+    } catch (error) { showToast(error.message, true); }
+  }
+
+  async function showCheckInModal(bookingId) {
+    var depositPaid = 0;
+    try {
+      var detail = await gasCall('getBookingDetail', adminState.token, bookingId);
+      depositPaid = Number(detail.settlement.depositPaid || 0);
+    } catch (error) { showToast(error.message, true); return; }
+    showModal('<div class="modal-head"><div><p class="eyebrow">รับสัตว์เข้าพัก</p><h2>เช็กอิน</h2></div><button class="icon-btn" onclick="closeModal()" aria-label="ปิด">' + iconMarkup('close') + '</button></div>' +
+      '<form onsubmit="submitCheckIn(event,\'' + bookingId + '\')"><div class="form-grid" style="margin-top:18px">' +
+      '<div class="field"><label>มัดจำที่รับจริงทั้งหมด (บาท)</label><input id="checkin-deposit" type="number" min="' + depositPaid + '" step="1" value="' + depositPaid + '" required><span class="hint">ยอดที่ตรวจรับไว้แล้ว ' + depositPaid.toLocaleString('th-TH') + ' บาท</span></div>' +
+      '<div class="field span-2"><label>หมายเหตุการเข้าพัก</label><textarea id="checkin-notes" placeholder="เช่น นำอาหารมาเอง ซื้ออาหารและชำระแล้ว หรือเลือกอาหารไว้แต่ยังไม่ชำระ"></textarea></div>' +
+      '</div><div class="actions"><button class="btn btn-primary">ยืนยันเช็กอิน</button></div></form>');
+  }
+
+  async function submitCheckIn(event, bookingId) {
+    event.preventDefault(); var button = event.submitter; setBusy(button, true);
+    try {
+      await gasCall('checkInBooking', adminState.token, bookingId, {
+        depositAmount: document.getElementById('checkin-deposit').value,
+        checkInNotes: document.getElementById('checkin-notes').value
+      });
+      closeModal(); showToast('เช็กอินเรียบร้อยแล้ว'); await bootstrapAdmin();
+    } catch (error) { showToast(error.message, true); }
+    finally { setBusy(button, false, 'ยืนยันเช็กอิน'); }
+  }
+
+  function showCheckOutModal(bookingId) {
+    showModal('<div class="modal-head"><div><p class="eyebrow">สรุปค่าใช้จ่าย</p><h2>เช็กเอาต์</h2></div><button class="icon-btn" onclick="closeModal()" aria-label="ปิด">' + iconMarkup('close') + '</button></div>' +
+      '<form onsubmit="submitCheckOut(event,\'' + bookingId + '\')"><div id="checkout-charges" style="margin-top:18px"></div>' +
+      '<div class="form-grid" style="margin-top:18px">' +
+      '<div class="field"><label>วิธีชำระเงิน</label><select id="checkout-payment-method">' +
+      '<option>เงินสด</option><option>โอนเงิน</option><option>พร้อมเพย์</option><option>บัตร</option><option>อื่น ๆ</option><option>ไม่ระบุ</option>' +
+      '</select></div>' +
+      '<div class="field"><label>หมายเหตุในใบเสร็จ</label><textarea id="checkout-receipt-notes" placeholder="ไม่บังคับกรอก"></textarea></div>' +
+      '</div>' +
+      '<div class="actions"><button type="button" class="btn btn-light" onclick="addCheckoutChargeRow()">+ เพิ่มค่าใช้จ่าย</button><button class="btn btn-primary">คำนวณและยืนยันเช็กเอาต์</button></div></form>');
+    addCheckoutChargeRow();
+  }
+
+  function addCheckoutChargeRow() {
+    var row = document.createElement('div'); row.className = 'form-grid checkout-charge-row';
+    row.innerHTML = '<div class="field"><label>ค่าใช้จ่ายเพิ่มเติม</label><select class="checkout-category" onchange="toggleCheckoutOther(this)">' +
+      '<option value="">ไม่เพิ่ม</option><option>ค่าอาหาร</option><option>ค่ายา</option><option>ให้น้ำเกลือ</option><option>ตรวจเลือด</option><option>อื่น ๆ</option></select></div>' +
+      '<div class="field"><label>จำนวนเงิน (บาท)</label><input class="checkout-amount" type="number" min="0" step="1" value="0"></div>' +
+      '<div class="field span-2 checkout-other" hidden><label>รายละเอียดอื่น ๆ</label><input class="checkout-detail"></div>';
+    document.getElementById('checkout-charges').appendChild(row);
+  }
+
+  function toggleCheckoutOther(select) {
+    select.closest('.checkout-charge-row').querySelector('.checkout-other').hidden = select.value !== 'อื่น ๆ';
+  }
+
+  async function submitCheckOut(event, bookingId) {
+    event.preventDefault();
+    var booking = adminState.bookings.find(function(item) {
+      return item.bookingId === bookingId;
+    });
+    var now = new Date();
+    var today = [
+      now.getFullYear(),
+      String(now.getMonth() + 1).padStart(2, '0'),
+      String(now.getDate()).padStart(2, '0')
+    ].join('-');
+    var isEarlyCheckout = false;
+    if (booking && booking.checkOutDate) {
+      try {
+        isEarlyCheckout = toCanonicalDate(booking.checkOutDate) > today;
+      } catch (error) {
+        isEarlyCheckout = false;
+      }
+    }
+    if (isEarlyCheckout && !confirm(
+      'วันออกตามแผนคือ ' + formatDateDisplay(booking.checkOutDate) +
+      ' ซึ่งยังมาไม่ถึง ยืนยันเช็กเอาต์ก่อนกำหนดหรือไม่?'
+    )) {
+      return;
+    }
+    var button = event.submitter; setBusy(button, true);
+    var charges = Array.from(document.querySelectorAll('.checkout-charge-row')).map(function(row) {
+      return { category: row.querySelector('.checkout-category').value,
+        amount: row.querySelector('.checkout-amount').value,
+        detail: row.querySelector('.checkout-detail').value };
+    }).filter(function(item) { return item.category; });
+    var receiptInput = {
+      paymentMethod: document.getElementById('checkout-payment-method').value,
+      notes: document.getElementById('checkout-receipt-notes').value,
+      confirmEarlyCheckout: isEarlyCheckout
+    };
+    try {
+      var result = await gasCall('checkOutBooking', adminState.token, bookingId, charges, receiptInput);
+      var receipt = result.receipt;
+      showModal('<div class="modal-head"><div><p class="eyebrow">ดำเนินการสำเร็จ</p><h2>เช็กเอาต์เรียบร้อยแล้ว</h2></div>' +
+        '<button class="icon-btn" onclick="closeModal()" aria-label="ปิด">' + iconMarkup('close') + '</button></div>' +
+        '<div class="detail-grid" style="margin-top:18px">' +
+        detailItem('ค่าใช้จ่ายรวม', Number(result.settlement.total || 0).toLocaleString('th-TH') + ' บาท') +
+        detailItem('รับเพิ่ม ณ เช็กเอาต์', Number(result.settlement.amountDue || 0).toLocaleString('th-TH') + ' บาท') +
+        detailItem('คืนลูกค้า', Number(result.settlement.refundDue || 0).toLocaleString('th-TH') + ' บาท') +
+        (receipt ? detailItem('เลขที่ใบเสร็จ', receipt.receiptNo) : '') + '</div>' +
+        (result.receiptError ? '<p class="notice warning" style="margin-top:18px">เช็กเอาต์สำเร็จ แต่ยังออกใบเสร็จไม่ได้: ' + escapeHtml(result.receiptError) + '</p>' : '') +
+        '<div class="actions">' +
+        (receipt ? '<button class="btn btn-primary" onclick="printReceipt(\'' + bookingId + '\')">พิมพ์ใบเสร็จ</button>' : '') +
+        '<button class="btn btn-light" onclick="closeModal()">ปิด</button></div>');
+      showToast('เช็กเอาต์เรียบร้อยแล้ว');
+      await bootstrapAdmin();
+    } catch (error) { showToast(error.message, true); }
+    finally { setBusy(button, false, 'คำนวณและยืนยันเช็กเอาต์'); }
+  }
+
+  async function printReceipt(bookingId) {
+    var printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      showToast('เบราว์เซอร์บล็อกหน้าต่างพิมพ์ กรุณาอนุญาตป๊อปอัปแล้วลองใหม่', true);
+      return;
+    }
+    printWindow.document.write('<!doctype html><html lang="th"><head><meta charset="utf-8"><title>กำลังเตรียมใบเสร็จ</title></head><body><p>กำลังเตรียมใบเสร็จ...</p></body></html>');
+    try {
+      var result = await gasCall('getPrintableReceipt', adminState.token, bookingId);
+      printWindow.document.open();
+      printWindow.document.write(result.html);
+      printWindow.document.close();
+      printWindow.focus();
+    } catch (error) {
+      printWindow.close();
+      var message = String(error && error.message ? error.message : error);
+      if (message === 'ไม่อนุญาตให้เรียกคำสั่งนี้') {
+        message = 'ระบบใบเสร็จฝั่งเซิร์ฟเวอร์ยังเป็นรุ่นเดิม กรุณา Deploy Apps Script และ Cloudflare รุ่น 1.8.3 ใหม่';
+      }
+      showToast(message, true);
+    }
+  }
+
+  function boardingDurationLabel(item) {
+    if (item.bookingType === 'DAYCARE' || item.bookingType === 'EMERGENCY_OWN_CAGE') {
+      return 'ภายในวันเดียว';
+    }
+    var nights = Number(item.nights || 0);
+    if (!Number.isFinite(nights) || nights <= 0) {
+      try {
+        var start = toCanonicalDate(item.checkInDate).split('-');
+        var end = toCanonicalDate(item.checkOutDate).split('-');
+        nights = Math.round((Date.UTC(Number(end[0]), Number(end[1]) - 1, Number(end[2])) -
+          Date.UTC(Number(start[0]), Number(start[1]) - 1, Number(start[2]))) / 86400000);
+      } catch (error) {
+        nights = 0;
+      }
+    }
+    return Math.max(1, nights) + ' คืน';
+  }
+
+  function renderBoardingOperations() {
+    var mode = adminState.boardingOperationMode || 'checkin';
+    var isCompleted = mode === 'completed';
+    var species = adminState.boardingSpecies || '';
+    var rows = adminState.bookings.filter(function(item) {
+      if (species && item.species !== species) return false;
+      if (mode === 'checkin') return item.status === 'CONFIRMED';
+      if (mode === 'active') return item.status === 'CHECKED_IN';
+      return item.status === 'CHECKED_OUT';
+    });
+    rows.sort(function(a, b) {
+      var left = mode === 'active' ? a.checkOutDate : a.checkInDate;
+      var right = mode === 'active' ? b.checkOutDate : b.checkInDate;
+      return String(left || '').localeCompare(String(right || '')) ||
+        String(a.bookingCode || '').localeCompare(String(b.bookingCode || ''));
+    });
+    var target = document.getElementById('boarding-operations-list');
+    if (!rows.length) { target.innerHTML = '<div class="card empty">ไม่มีรายการในหมวดนี้</div>'; return; }
+    target.innerHTML = '<div class="data-table-wrap"><table><thead><tr>' +
+      '<th>รหัสการจอง</th><th>เจ้าของ</th><th>ชื่อสัตว์เลี้ยง</th><th>ห้องพัก</th>' +
+      '<th>วันเข้า</th><th>วันออก</th>' +
+      (isCompleted ? '<th>ระยะเวลา</th><th>ใบเสร็จ</th>' : '') + '</tr></thead><tbody>' +
+      rows.map(function(item) {
+        var petLabels = item.petLabels && item.petLabels.length ? item.petLabels :
+          [(item.petNames && item.petNames[0] ? item.petNames[0] : '-') +
+            ' (' + (item.species === 'CAT' ? 'แมว' : 'สุนัข') + ')'];
+        return '<tr><td><button class="table-link" onclick="openBookingDetail(\'' + item.bookingId + '\')">' +
+          escapeHtml(item.bookingCode) + '</button></td>' +
+          '<td>' + escapeHtml(item.customerName) + '<br><small>' + escapeHtml(item.phone) + '</small></td>' +
+          '<td>' + petLabels.map(function(label) {
+            return '<span class="operation-pet-line">' + escapeHtml(label) + '</span>';
+          }).join('') + '</td>' +
+          '<td>' + escapeHtml(item.roomId || 'ยังไม่กำหนด') + '</td>' +
+          '<td>' + escapeHtml(formatDateDisplay(item.checkInDate)) + '</td>' +
+          '<td>' + escapeHtml(formatDateDisplay(item.checkOutDate)) + '</td>' +
+          (isCompleted ? '<td>' + escapeHtml(boardingDurationLabel(item)) + '</td>' +
+            '<td><button type="button" class="icon-btn receipt-print-button" ' +
+            'onclick="printReceipt(\'' + item.bookingId + '\')" aria-label="พิมพ์ใบเสร็จ" title="พิมพ์ใบเสร็จ">' +
+            iconMarkup('printer') + '</button></td>' : '') + '</tr>';
+      }).join('') + '</tbody></table></div>';
+  }
+
+  async function rejectCurrent(bookingId) {
+    var reason = prompt('เหตุผลที่ไม่อนุมัติ');
+    if (reason === null) return;
+    try {
+      await gasCall('rejectBooking', adminState.token, bookingId, reason);
+      closeModal(); showToast('ไม่อนุมัติและคืนห้องแล้ว'); await bootstrapAdmin();
+    } catch (error) { showToast(error.message, true); }
+  }
+
+  async function verifyCurrent(bookingId, paymentId) {
+    if (!confirm('ยืนยันว่าตรวจยอดและหลักฐานการโอนแล้ว?')) return;
+    var accountName = prompt('ชื่อบัญชีต้นทางตามหลักฐานการโอน');
+    if (!accountName) return;
+    var accountNumber = prompt('เลขบัญชีต้นทาง (ระบบจะเก็บแบบปิดบัง)');
+    if (!accountNumber) return;
+    try {
+      await gasCall('verifyDeposit', adminState.token, bookingId, paymentId, {
+        accountName: accountName,
+        accountNumber: accountNumber
+      });
+      closeModal(); showToast('ยืนยันมัดจำและการจองแล้ว'); await bootstrapAdmin();
+    } catch (error) { showToast(error.message, true); }
+  }
+
+  function renderRooms() {
+    renderRoomGroup('CAT', 'cat-rooms-grid', 'cat-room-date', 'cat-room-date-label');
+    renderRoomGroup('DOG', 'dog-rooms-grid', 'dog-room-date', 'dog-room-date-label');
+  }
+
+  function renderRoomGroup(species, gridId, dateInputId, dateLabelId) {
+    document.getElementById(gridId).innerHTML = adminState.rooms.filter(function(room) {
+      return room.species === species;
+    }).map(function(room) {
+      var stateClass = String(room.displayState || 'UNAVAILABLE').toLowerCase();
+      var hasBooking = Boolean(room.bookingId);
+      var petIcon = hasBooking ?
+        '<span class="room-species-icon" aria-label="' + (room.species === 'CAT' ? 'แมว' : 'สุนัข') + '">' +
+          iconMarkup(room.species === 'CAT' ? 'cat' : 'dog') + '</span>' : '';
+      var petNames = (room.petNames || []).map(function(name) {
+        return '<span class="room-pet-name">น้อง ' + escapeHtml(name) + '</span>';
+      }).join('');
+      var actionLabel = room.displayState === 'AVAILABLE' ?
+        'จอง ' + room.roomId + ' วันที่ ' + formatDateDisplay(adminState.roomDate) :
+        'ดูรายละเอียด ' + room.roomId;
+      return '<button type="button" class="card room-card room-' + stateClass +
+        '" onclick="openRoomCard(\'' + room.roomId + '\')" aria-label="' + escapeHtml(actionLabel) + '">' +
+        '<span class="room-card-top"><span class="hint">' +
+        (room.species === 'CAT' ? 'ห้องพักแมว' : 'ห้องพักสุนัข') + '</span>' + petIcon + '</span>' +
+        '<strong class="room-id">' + escapeHtml(room.roomId) + '</strong>' +
+        '<span class="status">' + escapeHtml(room.displayLabel || room.status) + '</span>' +
+        (petNames ? '<span class="room-pet-names" aria-label="ชื่อสัตว์เลี้ยง">' + petNames + '</span>' : '') +
+        (room.bookingCode ? '<small class="room-booking-code">' + escapeHtml(room.bookingCode) + '</small>' : '') +
+        '</button>';
+    }).join('');
+    document.getElementById(dateInputId).value = adminState.roomDate || '';
+    document.getElementById(dateLabelId).textContent = formatThaiLongDate(adminState.roomDate);
+  }
+
+  async function loadRoomsForDate(date) {
+    if (!date) return;
+    try {
+      adminState.rooms = await gasCall('listRooms', adminState.token, date);
+      adminState.roomDate = date;
+      renderRooms();
+    } catch (error) { showToast(error.message, true); }
+  }
+
+  function openRoomCard(roomId) {
+    var room = adminState.rooms.filter(function(item) { return item.roomId === roomId; })[0];
+    if (!room) return;
+    if (room.displayState === 'AVAILABLE') {
+      showStaffBookingModal({
+        preferredRoomId: room.roomId,
+        species: room.species,
+        checkInDate: adminState.roomDate
+      });
+      return;
+    }
+    if (room.bookingId) {
+      openBookingDetail(room.bookingId);
+      return;
+    }
+    showRoomStatusModal(room);
+  }
+
+  function showRoomStatusModal(room) {
+    var canManage = adminState.permissions.indexOf('room:manage') !== -1;
+    var form = canManage ?
+      '<div class="field"><label for="room-status-select">สถานะห้อง</label><select id="room-status-select">' +
+        [['AVAILABLE','ว่าง'],['CLEANING','กำลังทำความสะอาด'],['MAINTENANCE','ปิดซ่อมบำรุง'],['DISABLED','ปิดใช้งาน']]
+          .map(function(item) { return '<option value="' + item[0] + '"' + (room.status === item[0] ? ' selected' : '') + '>' + item[1] + '</option>'; }).join('') +
+        '</select></div><div class="field"><label for="room-notes">หมายเหตุ</label><textarea id="room-notes">' + escapeHtml(room.notes || '') + '</textarea></div>' +
+        '<div class="actions"><button class="btn btn-primary" onclick="updateRoomFromCard(\'' + room.roomId + '\')">บันทึกสถานะ</button></div>' : '';
+    showModal('<div class="modal-head"><div><p class="eyebrow">' + (room.species === 'CAT' ? 'ห้องพักแมว' : 'ห้องพักสุนัข') + '</p><h2>' + escapeHtml(room.roomName || room.roomId) +
+      '</h2></div><button class="icon-btn" onclick="closeModal()" aria-label="ปิด">' + iconMarkup('close') + '</button></div>' +
+      '<p><span class="status">' + escapeHtml(room.displayLabel) + '</span></p>' + form);
+  }
+
+  async function updateRoomFromCard(roomId) {
+    try {
+      await gasCall('updateRoom', adminState.token, roomId, {
+        status: document.getElementById('room-status-select').value,
+        notes: document.getElementById('room-notes').value
+      });
+      closeModal();
+      showToast('บันทึกสถานะห้องแล้ว');
+      await loadRoomsForDate(adminState.roomDate);
+    } catch (error) { showToast(error.message, true); }
+  }
+
+  function addDaysIso(isoDate, days) {
+    var parts = toCanonicalDate(isoDate).split('-').map(Number);
+    var date = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
+    date.setUTCDate(date.getUTCDate() + days);
+    return date.toISOString().slice(0, 10);
+  }
+
+  function formatThaiLongDate(isoDate) {
+    if (!isoDate) return '';
+    var canonical = toCanonicalDate(isoDate);
+    var parts = canonical.split('-').map(Number);
+    var weekday = new Intl.DateTimeFormat('th-TH', {
+      weekday: 'long', timeZone: 'UTC'
+    }).format(new Date(Date.UTC(parts[0], parts[1] - 1, parts[2])));
+    return weekday + ' ' + formatDateDisplay(canonical);
+  }
+
+  async function loadSterilizations() {
+    try {
+      adminState.sterilizations = await gasCall(
+        'listSterilizationAppointments',
+        adminState.token,
+        {}
+      );
+      renderSterilizations();
+    } catch (error) {
+      showToast(error.message, true);
+    }
+  }
+
+  function filteredSterilizations() {
+    var search = document.getElementById('sterilization-search').value.toLowerCase();
+    var dateValue = document.getElementById('sterilization-date-filter').value;
+    var date = dateValue ? toCanonicalDate(dateValue) : '';
+    var status = document.getElementById('sterilization-status-filter').value;
+    return adminState.sterilizations.filter(function(item) {
+      if (date && item.appointmentDate !== date) return false;
+      if (status && item.status !== status) return false;
+      if (search && [
+        item.appointmentCode,
+        item.customerName,
+        item.phone,
+        item.petName
+      ].join(' ').toLowerCase().indexOf(search) === -1) return false;
+      return true;
+    });
+  }
+
+  function renderSterilizations() {
+    var target = document.getElementById('sterilization-list');
+    var rows = filteredSterilizations();
+    if (!rows.length) {
+      target.innerHTML = '<div class="card empty">ยังไม่พบรายการนัดตามตัวกรอง</div>';
+      return;
+    }
+    target.innerHTML =
+      '<div class="data-table-wrap"><table><thead><tr><th>รหัส</th><th>วันและเวลา</th>' +
+      '<th>ผู้จอง</th><th>สัตว์</th><th>สถานะ</th></tr></thead><tbody>' +
+      rows.map(function(item) {
+        return '<tr><td><strong>' + escapeHtml(item.appointmentCode) + '</strong><br><small>' +
+          escapeHtml(item.sourceChannel) + '</small></td><td>' +
+          escapeHtml(formatDateDisplay(item.appointmentDate)) + '<br><small>' + escapeHtml(item.appointmentTime) +
+          ' น.</small></td><td>' + escapeHtml(item.customerName) + '<br><small>' +
+          escapeHtml(item.phone) + '</small></td><td><strong>' + escapeHtml(item.petName) +
+          '</strong><br><small>' + escapeHtml([item.species, item.sex, item.ageText, item.vaccinationStatus].filter(Boolean).join(' · ') || 'ยังไม่ระบุ') +
+          '</small></td><td><select class="status-select" aria-label="เปลี่ยนสถานะนัด ' +
+          escapeHtml(item.appointmentCode) + '" onchange="changeSterilizationStatus(\'' +
+          item.appointmentId + '\',this)">' + sterilizationStatusOptions(item.status) +
+          '</select></td></tr>';
+      }).join('') + '</tbody></table></div>';
+  }
+
+  function sterilizationStatusOptions(selected) {
+    var statuses = [
+      ['PENDING_CONFIRMATION', 'รอยืนยันนัด'],
+      ['CONFIRMED', 'ยืนยันนัดแล้ว'],
+      ['ARRIVED', 'มาถึงคลินิกแล้ว'],
+      ['COMPLETED', 'ดำเนินการเสร็จแล้ว'],
+      ['CANCELLED', 'ยกเลิก'],
+      ['NO_SHOW', 'ไม่มาตามนัด']
+    ];
+    return statuses.map(function(item) {
+      return '<option value="' + item[0] + '"' +
+        (selected === item[0] ? ' selected' : '') + '>' + item[1] + '</option>';
+    }).join('');
+  }
+
+  async function changeSterilizationStatus(appointmentId, select) {
+    var previous = adminState.sterilizations.filter(function(item) {
+      return item.appointmentId === appointmentId;
+    })[0];
+    try {
+      select.disabled = true;
+      await gasCall(
+        'updateSterilizationAppointmentStatus',
+        adminState.token,
+        appointmentId,
+        select.value
+      );
+      showToast('เปลี่ยนสถานะนัดแล้ว');
+      await loadSterilizations();
+      await loadSterilizationCalendar();
+    } catch (error) {
+      if (previous) select.value = previous.status;
+      showToast(error.message, true);
+    } finally {
+      select.disabled = false;
+    }
+  }
+
+  async function loadSterilizationCalendar() {
+    var target = document.getElementById('sterilization-calendar');
+    var month = document.getElementById('sterilization-month').value || currentMonthIso();
+    target.innerHTML = '<div class="card empty"><span class="loading"></span> กำลังโหลดปฏิทิน</div>';
+    try {
+      var data = await gasCall('getSterilizationCalendar', adminState.token, month);
+      adminState.sterilizationCalendar = data;
+      renderSterilizationCalendar(data);
+    } catch (error) {
+      target.innerHTML = '<div class="notice danger">' + escapeHtml(error.message) + '</div>';
+    }
+  }
+
+  function renderSterilizationCalendar(data) {
+    var parts = data.month.split('-').map(Number);
+    var year = parts[0];
+    var monthIndex = parts[1] - 1;
+    var firstDay = new Date(year, monthIndex, 1).getDay();
+    var daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+    var dayByDate = {};
+    data.days.forEach(function(day) { dayByDate[day.date] = day; });
+    var cells = [];
+    for (var blank = 0; blank < firstDay; blank += 1) {
+      cells.push('<div class="calendar-day muted" aria-hidden="true"></div>');
+    }
+    for (var dayNumber = 1; dayNumber <= daysInMonth; dayNumber += 1) {
+      var iso = data.month + '-' + String(dayNumber).padStart(2, '0');
+      var dayData = dayByDate[iso] || {
+        count: 0,
+        appointments: [],
+        holiday: false,
+        holidayReason: ''
+      };
+      var used = Number(dayData.count || 0);
+      var fullClass = used > data.capacity ? ' over-capacity' :
+        (used === data.capacity ? ' full' : (dayData.holiday ? ' holiday' : ''));
+      var availabilityLabel = used > data.capacity ? 'เกินคิว ' + (used - data.capacity) :
+        (used === data.capacity ? 'คิวเต็ม' :
+          (dayData.holiday ? 'วันหยุด' +
+            (dayData.holidayReason ? ' · ' + dayData.holidayReason : '') :
+            'ว่าง ' + (data.capacity - used)));
+      var petLinks = (dayData.appointments || []).map(function(item) {
+        var prefix = item.species === 'แมว' ? 'F' : (item.species === 'สุนัข' ? 'C' : 'O');
+        var sexLabel = item.sex === 'ผู้' ? 'ผู้' : (item.sex === 'เมีย' ? 'เมีย' : item.sex);
+        return '<span class="calendar-pet-link" role="button" tabindex="0" onclick="event.stopPropagation();openSterilizationDetail(\'' +
+          item.appointmentId + '\')">' + escapeHtml(prefix + '-' + item.petName + '/' + sexLabel) + '</span>';
+      }).join('');
+      cells.push(
+        '<div class="calendar-day' + fullClass + '" role="button" tabindex="0"' +
+        ' onclick="openSterilizationDay(\'' + iso + '\')"' +
+        ' onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();openSterilizationDay(\'' + iso + '\')}"><strong>' +
+        dayNumber + '</strong><span>' + used + '/' + data.capacity +
+        ' ตัว</span><small>' + escapeHtml(availabilityLabel) +
+        '</small>' + petLinks + '</div>'
+      );
+    }
+    document.getElementById('sterilization-calendar').innerHTML =
+      '<div class="calendar-card card"><div class="calendar-title">' +
+      new Date(year, monthIndex, 1).toLocaleDateString('th-TH', {
+        month: 'long',
+        year: 'numeric'
+      }) + '</div><div class="calendar-weekdays">' +
+      ['อา','จ','อ','พ','พฤ','ศ','ส'].map(function(day) {
+        return '<span>' + day + '</span>';
+      }).join('') + '</div><div class="calendar-grid">' + cells.join('') + '</div></div>';
+  }
+
+  function openSterilizationDay(dateValue) {
+    document.getElementById('sterilization-date-filter').value = dateValue;
+    showView('sterilization-list');
+  }
+
+  function openSterilizationDetail(appointmentId) {
+    var item = adminState.sterilizations.filter(function(row) { return row.appointmentId === appointmentId; })[0];
+    if (!item) {
+      loadSterilizations().then(function() { openSterilizationDetail(appointmentId); });
+      return;
+    }
+    showModal('<div class="modal-head"><div><p class="eyebrow">รายละเอียดนัดทำหมัน</p><h2>' + escapeHtml(item.petName) +
+      '</h2></div><button class="icon-btn" onclick="closeModal()" aria-label="ปิด">' + iconMarkup('close') + '</button></div>' +
+      '<div class="detail-grid" style="margin-top:18px">' + detailItem('รหัสนัด', item.appointmentCode) +
+      detailItem('เจ้าของ', item.customerName + ' · ' + item.phone) + detailItem('วันและเวลา', formatDateDisplay(item.appointmentDate) + ' ' + item.appointmentTime) +
+      detailItem('ชนิด/เพศ', [item.species, item.sex].filter(Boolean).join(' · ')) + detailItem('พันธุ์', item.breed || '-') +
+      detailItem('อายุ', item.ageText || '-') + detailItem('น้ำหนัก', item.weightKg ? item.weightKg + ' กก.' : '-') +
+      detailItem('วัคซีน', item.vaccinationStatus || '-') + detailItem('สถานะ', item.statusLabel) +
+      '</div><div class="notice" style="margin-top:16px">' + escapeHtml(item.notes || 'ไม่มีหมายเหตุ') + '</div>');
+  }
+
+  function currentMonthIso() {
+    var today = new Date();
+    return today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0');
+  }
+
+  function currentDateIso() {
+    var today = new Date();
+    return today.getFullYear() + '-' +
+      String(today.getMonth() + 1).padStart(2, '0') + '-' +
+      String(today.getDate()).padStart(2, '0');
+  }
+
+  function showSterilizationModal(dateValue) {
+    showModal(
+      '<div class="modal-head"><div><p class="eyebrow">รับจองโดยพนักงาน</p>' +
+      '<h2>นัดผ่าตัดทำหมัน</h2></div><button class="icon-btn" onclick="closeModal()" aria-label="ปิด">' + iconMarkup('close') + '</button></div>' +
+      '<div class="notice">โควตาปกติ 4 ตัวต่อวัน สามารถเพิ่มคิวเกินโควตาได้ ส่วนวันหยุดอนุญาตให้รับจองแบบยกเว้นเฉพาะเจ้าของหรือหมอ</div>' +
+      '<form onsubmit="submitSterilizationAppointment(event)"><div class="form-grid">' +
+      '<div class="field"><label>วันที่นัด</label><input id="ster-date" type="date" required></div>' +
+      '<div class="field"><label>เวลานัด</label><input id="ster-time" type="time" value="09:00" required></div>' +
+      '<div class="field"><label>ชื่อผู้จอง</label><input id="ster-customer" required></div>' +
+      '<div class="field"><label>เบอร์โทร</label><input id="ster-phone" required></div>' +
+      '<div class="field"><label>ชื่อสัตว์</label><input id="ster-pet" required></div>' +
+      '<div class="field"><label>ช่องทาง</label><select id="ster-channel">' +
+      '<option value="PHONE">โทรศัพท์</option><option value="WALK_IN">Walk-in</option>' +
+      '<option value="FACEBOOK">Facebook</option><option value="OTHER">อื่น ๆ</option></select></div>' +
+      '<div class="field"><label>ชนิดสัตว์</label><select id="ster-species-category" required ' +
+      'onchange="toggleSterilizationOtherSpecies()"><option value="">เลือกชนิดสัตว์</option>' +
+      '<option value="DOG">สุนัข</option><option value="CAT">แมว</option>' +
+      '<option value="OTHER">อื่น ๆ</option></select></div>' +
+      '<div class="field"><label>เพศ</label><select id="ster-sex" required>' +
+      '<option value="">เลือกเพศ</option><option value="MALE">ผู้</option>' +
+      '<option value="FEMALE">เมีย</option></select></div>' +
+      '<div class="field span-2" id="ster-species-other-field" hidden>' +
+      '<label>ระบุชนิดสัตว์เพิ่มเติม</label><input id="ster-species-other" maxlength="50"></div>' +
+      '<div class="field"><label>พันธุ์</label><input id="ster-breed"></div>' +
+      '<div class="field"><label>น้ำหนัก (กก.)</label><input id="ster-weight" type="number" min="0.1" step="0.1"></div>' +
+      '<div class="field"><label>อายุ</label><input id="ster-age" placeholder="เช่น 8 เดือน หรือ 2 ปี"></div>' +
+      '<div class="field"><label>วัคซีน</label><input id="ster-vaccination" placeholder="เช่น ครบตามกำหนด หรือยังไม่ครบ"></div>' +
+      '<div class="field span-2"><label>หมายเหตุ</label><textarea id="ster-notes"></textarea></div>' +
+      '</div><div class="actions"><button class="btn btn-primary">บันทึกนัด</button></div></form>'
+    );
+    document.getElementById('ster-date').value =
+      dateValue || document.getElementById('sterilization-date-filter').value || currentDateIso();
+  }
+
+  function toggleSterilizationOtherSpecies() {
+    var category = document.getElementById('ster-species-category').value;
+    var field = document.getElementById('ster-species-other-field');
+    var input = document.getElementById('ster-species-other');
+    var isOther = category === 'OTHER';
+    field.hidden = !isOther;
+    input.required = isOther;
+    if (!isOther) input.value = '';
+  }
+
+  async function submitSterilizationAppointment(event) {
+    event.preventDefault();
+    var button = event.submitter;
+    setBusy(button, true);
+    var payload = {
+          appointmentDate: toCanonicalDate(document.getElementById('ster-date').value),
+          appointmentTime: document.getElementById('ster-time').value,
+          customerName: document.getElementById('ster-customer').value,
+          phone: document.getElementById('ster-phone').value,
+          petName: document.getElementById('ster-pet').value,
+          sourceChannel: document.getElementById('ster-channel').value,
+          speciesCategory: document.getElementById('ster-species-category').value,
+          speciesOther: document.getElementById('ster-species-other').value,
+          sex: document.getElementById('ster-sex').value,
+          breed: document.getElementById('ster-breed').value,
+          weightKg: document.getElementById('ster-weight').value,
+          ageText: document.getElementById('ster-age').value,
+          vaccinationStatus: document.getElementById('ster-vaccination').value,
+          notes: document.getElementById('ster-notes').value,
+          holidayOverride: false
+        };
+    try {
+      var result;
+      try {
+        result = await gasCall('createSterilizationAppointment', adminState.token, payload);
+      } catch (error) {
+        var isHoliday = String(error.message || '').indexOf('[STERILIZATION_HOLIDAY]') !== -1;
+        var canOverride = adminState.permissions.indexOf('sterilization:holiday') !== -1;
+        if (!isHoliday || !canOverride) throw error;
+        var message = String(error.message || '').replace('[STERILIZATION_HOLIDAY]', '').trim();
+        if (!confirm(message + '\n\nต้องการรับจองแบบยกเว้นในวันหยุดหรือไม่?')) return;
+        payload.holidayOverride = true;
+        result = await gasCall('createSterilizationAppointment', adminState.token, payload);
+      }
+      closeModal();
+      showToast('สร้างนัด ' + result.appointmentCode + ' แล้ว เหลือ ' + result.remaining + ' คิว');
+      await loadSterilizations();
+      await loadSterilizationCalendar();
+      showView('sterilization-list');
+    } catch (error) {
+      showToast(error.message, true);
+    } finally {
+      setBusy(button, false, 'บันทึกนัด');
+    }
+  }
+
+  async function showSterilizationHolidayModal() {
+    if (adminState.permissions.indexOf('sterilization:holiday') === -1) {
+      return showToast('เฉพาะเจ้าของหรือหมอเท่านั้นที่ตั้งวันหยุดทำหมันได้', true);
+    }
+    var month = document.getElementById('sterilization-month').value || currentMonthIso();
+    showModal('<div class="modal-head"><div><p class="eyebrow">ปฏิทินคิวทำหมัน</p>' +
+      '<h2>กำหนดวันหยุด</h2></div><button class="icon-btn" onclick="closeModal()" aria-label="ปิด">' +
+      iconMarkup('close') + '</button></div><div class="card empty"><span class="loading"></span> กำลังโหลดวันหยุด</div>');
+    try {
+      var holidays = await gasCall('listSterilizationHolidays', adminState.token, month);
+      renderSterilizationHolidayModal(month, holidays);
+    } catch (error) {
+      closeModal();
+      showToast(error.message, true);
+    }
+  }
+
+  function renderSterilizationHolidayModal(month, holidays) {
+    var holidayRows = holidays.length ? holidays.map(function(item) {
+      return '<div class="holiday-row"><div><strong>' + formatDateDisplay(item.holidayDate) +
+        '</strong><small>' + escapeHtml(item.reason || 'วันหยุด') + '</small></div>' +
+        '<div class="actions"><button type="button" class="btn btn-secondary" onclick="closeModal();showSterilizationModal(\'' +
+        item.holidayDate + '\')">รับจองแบบยกเว้น</button>' +
+        '<button type="button" class="btn btn-danger" onclick="removeSterilizationHolidayFromUi(\'' +
+        item.holidayId + '\')">ลบ</button></div></div>';
+    }).join('') : '<div class="empty">เดือนนี้ยังไม่ได้กำหนดวันหยุด</div>';
+    showModal('<div class="modal-head"><div><p class="eyebrow">ปฏิทินคิวทำหมัน</p>' +
+      '<h2>กำหนดวันหยุด</h2></div><button class="icon-btn" onclick="closeModal()" aria-label="ปิด">' +
+      iconMarkup('close') + '</button></div>' +
+      '<div class="notice">วันหยุดจะแสดงเป็นสีชมพู เจ้าของหรือหมอยังรับจองแบบยกเว้นได้โดยต้องยืนยันทุกครั้ง</div>' +
+      '<form id="ster-holiday-form" class="holiday-add-form" onsubmit="submitSterilizationHoliday(event)">' +
+      '<div id="ster-holiday-entry-list">' + sterilizationHolidayEntryMarkup_(0, month, false) + '</div>' +
+      '<div class="actions holiday-add-actions"><button id="show-ster-holiday-form-btn" type="button" class="btn btn-secondary" ' +
+      'onclick="showSterilizationHolidayForm()">+ เพิ่มวันหยุด</button></div>' +
+      '<div class="actions" style="margin-top:12px"><button class="btn btn-primary">บันทึกวันหยุด</button></div></form>' +
+      '<div class="holiday-list" style="margin-top:20px">' + holidayRows + '</div>');
+  }
+
+  function sterilizationHolidayEntryMarkup_(index, month, removable) {
+    var removeButton = removable
+      ? '<button type="button" class="btn btn-light" onclick="removeSterilizationHolidayEntry(this)">ลบช่องนี้</button>'
+      : '';
+    var dateValue = index === 0 ? ' value="' + month + '-01"' : '';
+    return '<div class="ster-holiday-entry" data-entry-index="' + index + '"' +
+      (index ? ' style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)"' : '') + '>' +
+      '<div class="form-grid">' +
+      '<div class="field"><label>วันที่หยุด</label><input class="ster-holiday-date" type="date" min="' +
+      month + '-01"' + dateValue + ' required></div>' +
+      '<div class="field"><label>เหตุผล</label><input class="ster-holiday-reason" maxlength="120" ' +
+      'placeholder="เช่น หมอไม่อยู่" required></div></div>' +
+      (removeButton ? '<div class="actions" style="margin-top:8px">' + removeButton + '</div>' : '') +
+      '</div>';
+  }
+
+  function showSterilizationHolidayForm() {
+    var list = document.getElementById('ster-holiday-entry-list');
+    if (!list) return;
+    var month = document.getElementById('sterilization-month').value || currentMonthIso();
+    var index = list.querySelectorAll('.ster-holiday-entry').length;
+    list.insertAdjacentHTML('beforeend', sterilizationHolidayEntryMarkup_(index, month, true));
+    var entries = list.querySelectorAll('.ster-holiday-entry');
+    var newEntry = entries[entries.length - 1];
+    var dateInput = newEntry ? newEntry.querySelector('.ster-holiday-date') : null;
+    if (dateInput) dateInput.focus();
+  }
+
+  function removeSterilizationHolidayEntry(button) {
+    var entry = button.closest('.ster-holiday-entry');
+    if (entry) entry.remove();
+  }
+
+  async function submitSterilizationHoliday(event) {
+    event.preventDefault();
+    var button = event.submitter;
+    var month = document.getElementById('sterilization-month').value || currentMonthIso();
+    var entries = Array.prototype.slice.call(document.querySelectorAll(
+      '#ster-holiday-entry-list .ster-holiday-entry'
+    ));
+    var payloads = [];
+    var usedDates = {};
+
+    for (var i = 0; i < entries.length; i += 1) {
+      var dateInput = entries[i].querySelector('.ster-holiday-date');
+      var reasonInput = entries[i].querySelector('.ster-holiday-reason');
+      var rawDate = dateInput ? dateInput.value : '';
+      var reason = reasonInput ? reasonInput.value.trim() : '';
+      if (!rawDate || !reason) {
+        showToast('กรุณากรอกวันที่หยุดและเหตุผลให้ครบทุกช่อง', true);
+        if (!rawDate && dateInput) dateInput.focus();
+        else if (reasonInput) reasonInput.focus();
+        return;
+      }
+      var holidayDate = toCanonicalDate(rawDate);
+      if (usedDates[holidayDate]) {
+        showToast('มีวันที่หยุด ' + formatDateDisplay(holidayDate) + ' ซ้ำกัน', true);
+        if (dateInput) dateInput.focus();
+        return;
+      }
+      usedDates[holidayDate] = true;
+      payloads.push({ holidayDate: holidayDate, reason: reason });
+    }
+
+    if (!payloads.length) {
+      showToast('กรุณาเพิ่มวันหยุดอย่างน้อย 1 วัน', true);
+      return;
+    }
+
+    setBusy(button, true);
+    try {
+      for (var j = 0; j < payloads.length; j += 1) {
+        await gasCall('saveSterilizationHoliday', adminState.token, payloads[j]);
+      }
+      showToast('บันทึกวันหยุดทำหมันแล้ว ' + payloads.length + ' วัน');
+      await loadSterilizationCalendar();
+      var holidays = await gasCall('listSterilizationHolidays', adminState.token, month);
+      renderSterilizationHolidayModal(month, holidays);
+    } catch (error) {
+      showToast(error.message, true);
+      setBusy(button, false, 'บันทึกวันหยุด');
+    }
+  }
+
+  async function removeSterilizationHolidayFromUi(holidayId) {
+    if (!confirm('ต้องการลบวันหยุดนี้ใช่หรือไม่?')) return;
+    var month = document.getElementById('sterilization-month').value || currentMonthIso();
+    try {
+      await gasCall('removeSterilizationHoliday', adminState.token, holidayId);
+      showToast('ลบวันหยุดทำหมันแล้ว');
+      await loadSterilizationCalendar();
+      var holidays = await gasCall('listSterilizationHolidays', adminState.token, month);
+      renderSterilizationHolidayModal(month, holidays);
+    } catch (error) {
+      showToast(error.message, true);
+    }
+  }
+
+  async function loadUsers() {
+    var target = document.getElementById('users-content');
+    if (adminState.permissions.indexOf('user:manage') === -1) {
+      target.innerHTML = '<div class="empty">บัญชีของคุณไม่มีสิทธิ์จัดการผู้ใช้งาน</div>';
+      return;
+    }
+    try {
+      var users = await gasCall('listUsers', adminState.token);
+      target.innerHTML = '<div class="data-table-wrap"><table><thead><tr><th>ชื่อผู้ใช้</th><th>ชื่อที่แสดง</th><th>บทบาท</th><th>สถานะ</th></tr></thead><tbody>' +
+        users.map(function(user) {
+          return '<tr><td>' + escapeHtml(user.username) + '</td><td>' + escapeHtml(user.displayName) +
+            '</td><td>' + roleLabel(user.role) + '</td><td>' + (user.active ? 'ใช้งาน' : 'ปิดใช้งาน') + '</td></tr>';
+        }).join('') + '</tbody></table></div>';
+    } catch (error) { target.innerHTML = '<div class="notice danger">' + escapeHtml(error.message) + '</div>'; }
+  }
+
+  function showNewUserModal() {
+    if (adminState.permissions.indexOf('user:manage') === -1) {
+      return showToast('บัญชีของคุณไม่มีสิทธิ์สร้างผู้ใช้', true);
+    }
+    showModal('<div class="modal-head"><h2>เพิ่มผู้ใช้งาน</h2><button class="icon-btn" onclick="closeModal()" aria-label="ปิด">' + iconMarkup('close') + '</button></div>' +
+      '<form onsubmit="submitNewUser(event)"><div class="form-grid" style="margin-top:18px">' +
+      '<div class="field"><label>ชื่อผู้ใช้</label><input id="new-username" pattern="[a-z0-9._-]{4,40}" required></div>' +
+      '<div class="field"><label>ชื่อที่แสดง</label><input id="new-display-name" required></div>' +
+      '<div class="field"><label>บทบาท</label><select id="new-role"><option value="STAFF">พนักงาน</option><option value="DOCTOR">หมอ</option><option value="OWNER">เจ้าของ</option></select></div>' +
+      '<div class="field"><label>รหัสผ่านชั่วคราว</label><input id="new-password" type="password" minlength="10" required><span class="hint">อย่างน้อย 10 ตัว มีตัวใหญ่ ตัวเล็ก ตัวเลข และอักขระพิเศษ</span></div>' +
+      '</div><div class="actions"><button class="btn btn-primary">สร้างผู้ใช้</button></div></form>');
+  }
+
+  async function submitNewUser(event) {
+    event.preventDefault();
+    var button = event.submitter;
+    setBusy(button, true);
+    try {
+      await gasCall('createUser', adminState.token, {
+        username: document.getElementById('new-username').value,
+        displayName: document.getElementById('new-display-name').value,
+        role: document.getElementById('new-role').value,
+        password: document.getElementById('new-password').value,
+        mustChangePassword: true
+      });
+      closeModal(); showToast('สร้างผู้ใช้แล้ว'); await loadUsers();
+    } catch (error) { showToast(error.message, true); }
+    finally { setBusy(button, false, 'สร้างผู้ใช้'); }
+  }
+
+  async function loadSettings() {
+    var target = document.getElementById('settings-content');
+    if (adminState.permissions.indexOf('settings:manage') === -1) {
+      target.innerHTML = '<div class="card empty">บัญชีของคุณไม่มีสิทธิ์แก้ไขการตั้งค่า</div>';
+      return;
+    }
+    try {
+      var s = await gasCall('getAdminSettings', adminState.token);
+      target.innerHTML =
+        '<form class="card" onsubmit="saveSettings(event)"><h3>ข้อมูลสถานบริการ</h3><div class="form-grid">' +
+        settingField('settings-clinic-name-th','ชื่อสถานบริการภาษาไทย',s.clinicNameTh) +
+        settingField('settings-clinic-name-en','ชื่อสถานบริการภาษาอังกฤษ',s.clinicNameEn) +
+        settingField('settings-clinic-phone','หมายเลขโทรศัพท์',s.clinicPhone) +
+        settingField('settings-bank','ธนาคาร',s.bankName) +
+        settingField('settings-account-name','ชื่อบัญชี',s.bankAccountName) +
+        settingField('settings-account-number','เลขบัญชี',s.bankAccountNumber) +
+        settingField('settings-qr-url','URL รูป QR PromptPay',s.promptPayQrUrl) +
+        settingField('settings-line-url','URL LINE OA',s.lineOaUrl) +
+        settingField('settings-facebook-url','URL Facebook',s.facebookUrl) +
+        '</div><div class="actions"><button class="btn btn-primary">บันทึกการตั้งค่า</button></div></form>' +
+        '<form class="card" onsubmit="uploadClinicLogoForm(event)"><h3>โลโก้สถานบริการ</h3>' +
+        '<div class="logo-settings-grid"><div class="clinic-logo-preview"><div class="brand-mark" data-brand-logo aria-hidden="true">🐾</div></div>' +
+        '<div class="field"><label for="settings-logo-file">อัปโหลดรูปภาพโลโก้</label>' +
+        '<input id="settings-logo-file" type="file" accept="image/jpeg,image/png,image/webp" required>' +
+        '<span class="hint">รองรับ JPG, PNG หรือ WEBP ขนาดไม่เกิน 1 MB แนะนำรูปสี่เหลี่ยมจัตุรัส</span></div></div>' +
+        '<div class="actions"><button class="btn btn-primary">อัปโหลดโลโก้</button></div></form>' +
+        '<form class="card" onsubmit="saveLineSettings(event)"><h3>LINE Messaging API / LIFF</h3>' +
+        '<div class="notice warning">Channel Access Token เป็นความลับ ระบบจะเก็บใน Script Properties และไม่แสดงกลับหน้าเว็บ</div>' +
+        '<div class="form-grid">' +
+        settingField('settings-line-channel-id','LINE Login Channel ID','') +
+        settingField('settings-liff-id','LIFF ID',s.liffId) +
+        '<div class="field span-2"><label>Messaging API Channel Access Token</label><input id="settings-line-token" type="password" autocomplete="new-password"></div>' +
+        '</div><div class="actions"><button class="btn btn-primary">บันทึก LINE</button><span class="hint">สถานะปัจจุบัน: ' +
+        (s.lineConfigured ? 'ตั้งค่า Token แล้ว' : 'ยังไม่ตั้งค่า') + '</span></div></form>';
+      applyBranding(s);
+    } catch (error) {
+      target.innerHTML = '<div class="notice danger">' + escapeHtml(error.message) + '</div>';
+    }
+  }
+
+  function settingField(id, label, value) {
+    return '<div class="field"><label for="' + id + '">' + escapeHtml(label) + '</label><input id="' +
+      id + '" value="' + escapeHtml(value || '') + '"></div>';
+  }
+
+  async function saveSettings(event) {
+    event.preventDefault();
+    var button = event.submitter;
+    setBusy(button, true);
+    try {
+      await gasCall('updateAdminSettings', adminState.token, {
+        clinicNameTh: document.getElementById('settings-clinic-name-th').value,
+        clinicNameEn: document.getElementById('settings-clinic-name-en').value,
+        clinicPhone: document.getElementById('settings-clinic-phone').value,
+        bankName: document.getElementById('settings-bank').value,
+        bankAccountName: document.getElementById('settings-account-name').value,
+        bankAccountNumber: document.getElementById('settings-account-number').value,
+        promptPayQrUrl: document.getElementById('settings-qr-url').value,
+        lineOaUrl: document.getElementById('settings-line-url').value,
+        facebookUrl: document.getElementById('settings-facebook-url').value
+      });
+      showToast('บันทึกการตั้งค่าแล้ว');
+      await loadPublicBranding();
+    } catch (error) { showToast(error.message, true); }
+    finally { setBusy(button, false, 'บันทึกการตั้งค่า'); }
+  }
+
+  async function uploadClinicLogoForm(event) {
+    event.preventDefault();
+    var button = event.submitter;
+    setBusy(button, true);
+    try {
+      var file = document.getElementById('settings-logo-file').files[0];
+      var payload = await fileToPayload(file, 1 * 1024 * 1024, '1 MB');
+      await gasCall('uploadClinicLogo', adminState.token, payload);
+      showToast('อัปโหลดโลโก้เรียบร้อยแล้ว');
+      await loadSettings();
+      await loadPublicBranding();
+    } catch (error) { showToast(error.message, true); }
+    finally { setBusy(button, false, 'อัปโหลดโลโก้'); }
+  }
+
+  async function saveLineSettings(event) {
+    event.preventDefault();
+    var button = event.submitter;
+    setBusy(button, true);
+    try {
+      await gasCall('configureLineSecrets', adminState.token, {
+        channelId: document.getElementById('settings-line-channel-id').value,
+        liffId: document.getElementById('settings-liff-id').value,
+        channelAccessToken: document.getElementById('settings-line-token').value
+      });
+      showToast('บันทึก LINE แล้ว'); await loadSettings();
+    } catch (error) { showToast(error.message, true); }
+    finally { setBusy(button, false, 'บันทึก LINE'); }
+  }
+
+  function showChangePasswordModal() {
+    showModal('<div class="modal-head"><div><p class="eyebrow">ความปลอดภัย</p><h2>กรุณาเปลี่ยนรหัสผ่านชั่วคราว</h2></div></div>' +
+      '<form onsubmit="submitPasswordChange(event)"><div class="form-grid" style="margin-top:18px">' +
+      '<div class="field"><label>รหัสผ่านปัจจุบัน</label><input id="current-password" type="password" required></div>' +
+      '<div class="field"><label>รหัสผ่านใหม่</label><input id="new-my-password" type="password" minlength="10" required><span class="hint">อย่างน้อย 10 ตัว มีตัวใหญ่ ตัวเล็ก ตัวเลข และอักขระพิเศษ</span></div>' +
+      '</div><div class="actions"><button class="btn btn-primary">เปลี่ยนรหัสผ่าน</button></div></form>');
+  }
+
+  async function submitPasswordChange(event) {
+    event.preventDefault();
+    var button = event.submitter;
+    setBusy(button, true);
+    try {
+      await gasCall(
+        'changeMyPassword',
+        adminState.token,
+        document.getElementById('current-password').value,
+        document.getElementById('new-my-password').value
+      );
+      closeModal(); showToast('เปลี่ยนรหัสผ่านแล้ว กรุณาเข้าสู่ระบบใหม่');
+      await handleLogout();
+    } catch (error) { showToast(error.message, true); }
+    finally { setBusy(button, false, 'เปลี่ยนรหัสผ่าน'); }
+  }
+
+  function showStaffBookingModal(options) {
+    var opts = options && options.preferredRoomId ? options : {};
+    if (opts.preferredRoomId) return showStaffBookingForm(1, opts);
+    showModal('<div class="modal-head"><div><p class="eyebrow">ขั้นตอนที่ 1</p><h2>เลือกจำนวนห้องพัก</h2></div><button class="icon-btn" onclick="closeModal()" aria-label="ปิด">' + iconMarkup('close') + '</button></div>' +
+      '<div class="field" style="margin-top:18px"><label>จำนวนห้องพักที่ต้องการจอง</label><select id="staff-unit-count">' +
+      Array.from({length: 18}, function(_, index) { return '<option value="' + (index + 1) + '">' + (index + 1) + ' ห้อง</option>'; }).join('') +
+      '</select><span class="hint">ข้อมูลเจ้าของจะกรอกเพียงครั้งเดียว แล้วแยกสัตว์ตามแต่ละห้องพัก</span></div>' +
+      '<div class="actions"><button class="btn btn-primary" onclick="showStaffBookingForm(Number(document.getElementById(\'staff-unit-count\').value),{})">ถัดไป</button></div>');
+  }
+
+  function showStaffBookingForm(unitCount, options) {
+    var opts = options || {};
+    var preferredRoom = opts.preferredRoomId || '';
+    var unitPanels = [];
+    for (var index = 0; index < unitCount; index += 1) {
+      var species = index === 0 && opts.species ? opts.species : 'CAT';
+      unitPanels.push('<div class="pet-panel staff-unit" data-unit-index="' + index + '"><h4>ห้องพักลำดับที่ ' + (index + 1) +
+        (index === 0 && preferredRoom ? ' · ' + escapeHtml(preferredRoom) : '') + '</h4><input class="staff-preferred-room" type="hidden" value="' +
+        (index === 0 ? escapeHtml(preferredRoom) : '') + '"><div class="form-grid">' +
+        '<div class="field"><label>ประเภทสัตว์</label><select class="staff-unit-species" onchange="renderStaffUnitPets(this.closest(\'.staff-unit\'))">' +
+        '<option value="CAT"' + (species === 'CAT' ? ' selected' : '') + '>แมว</option><option value="DOG"' + (species === 'DOG' ? ' selected' : '') + '>สุนัข</option></select></div>' +
+        '<div class="field"><label>จำนวนสัตว์</label><select class="staff-unit-pet-count" onchange="renderStaffUnitPets(this.closest(\'.staff-unit\'))"><option value="1">1 ตัว</option><option value="2">2 ตัว</option></select></div>' +
+        '</div><div class="staff-unit-pets"></div></div>');
+    }
+    showModal('<div class="modal-head"><div><p class="eyebrow">รับจองโดยพนักงาน</p><h2>สร้างรายการหลังบ้าน</h2></div><button class="icon-btn" onclick="closeModal()" aria-label="ปิด">' + iconMarkup('close') + '</button></div>' +
+      '<div class="notice">รองรับ Facebook, โทรศัพท์, Walk-in และอื่น ๆ รายการค้างคืนจะกันห้องทันทีและอยู่สถานะรออนุมัติ</div>' +
+      '<form id="staff-booking-form" onsubmit="submitStaffBooking(event)"><div class="form-grid">' +
+      '<div class="field"><label>ช่องทาง</label><select id="staff-channel"><option value="PHONE">โทรศัพท์</option><option value="WALK_IN">Walk-in</option><option value="FACEBOOK">Facebook</option><option value="OTHER">อื่น ๆ</option></select></div>' +
+      '<div class="field"><label>ประเภทบริการ</label><select id="staff-type"' + (unitCount > 1 || preferredRoom ? ' disabled' : '') + '><option value="OVERNIGHT">พักค้างคืน</option><option value="DAYCARE">ฝากเช้า–รับเย็น</option><option value="EMERGENCY_OWN_CAGE">ฉุกเฉิน กรงเจ้าของ</option></select></div>' +
+      '<div class="field"><label>ชื่อผู้จอง</label><input id="staff-name" required></div><div class="field"><label>เบอร์โทร</label><input id="staff-phone" required></div>' +
+      '<div class="field"><label>วันเข้า (วัน-เดือน-ปี ค.ศ.)</label><input id="staff-checkin" type="date" required></div><div class="field"><label>วันออก (วัน-เดือน-ปี ค.ศ.)</label><input id="staff-checkout" type="date" required></div>' +
+      '<div class="field"><label>เวลาเข้า</label><input id="staff-timein" type="time" value="10:00" required></div><div class="field"><label>เวลาออก</label><input id="staff-timeout" type="time" value="17:00" required></div>' +
+      '</div><h3 style="margin-top:22px">ข้อมูลสัตว์แยกตามห้องพัก</h3>' + unitPanels.join('') +
+      '<div class="actions"><button class="btn btn-primary">สร้างรายการ</button></div></form>');
+    document.querySelectorAll('.staff-unit').forEach(renderStaffUnitPets);
+    if (preferredRoom) document.querySelector('.staff-unit-species').disabled = true;
+    if (opts.checkInDate) {
+      document.getElementById('staff-checkin').value = toCanonicalDate(opts.checkInDate);
+      document.getElementById('staff-checkout').value = addDaysIso(opts.checkInDate, 1);
+    }
+  }
+
+  function renderStaffUnitPets(unit) {
+    var count = Number(unit.querySelector('.staff-unit-pet-count').value);
+    var species = unit.querySelector('.staff-unit-species').value;
+    var fields = [];
+    for (var index = 0; index < count; index += 1) {
+      fields.push('<div class="form-grid" style="margin-top:12px"><div class="field"><label>ชื่อสัตว์ตัวที่ ' + (index + 1) +
+        '</label><input class="staff-pet-name" required></div><div class="field"><label>น้ำหนักตัวที่ ' + (index + 1) +
+        ' (กก.)' + (species === 'CAT' ? ' · ไม่บังคับ' : '') + '</label><input class="staff-pet-weight" type="number" min="0.1" step="0.1"' +
+        (species === 'DOG' ? ' required' : '') + '></div></div>');
+    }
+    unit.querySelector('.staff-unit-pets').innerHTML = fields.join('');
+  }
+
+  async function submitStaffBooking(event) {
+    event.preventDefault();
+    var button = event.submitter;
+    setBusy(button, true);
+    try {
+      var type = document.getElementById('staff-type').value;
+      var inDate = toCanonicalDate(document.getElementById('staff-checkin').value);
+      var outDate = type === 'OVERNIGHT' ?
+        toCanonicalDate(document.getElementById('staff-checkout').value) : inDate;
+      var units = Array.from(document.querySelectorAll('.staff-unit')).map(function(unit) {
+        var names = unit.querySelectorAll('.staff-pet-name');
+        var weights = unit.querySelectorAll('.staff-pet-weight');
+        return { species: unit.querySelector('.staff-unit-species').value,
+          preferredRoomId: unit.querySelector('.staff-preferred-room').value,
+          pets: Array.from(names).map(function(name, index) { return { name: name.value, weightKg: weights[index].value }; }) };
+      });
+      var shared = {
+        sourceChannel: document.getElementById('staff-channel').value,
+        bookingType: type,
+        customerName: document.getElementById('staff-name').value,
+        phone: document.getElementById('staff-phone').value,
+        checkInDate: inDate, checkOutDate: outDate,
+        checkInTime: document.getElementById('staff-timein').value,
+        checkOutTime: document.getElementById('staff-timeout').value,
+        fleaTickTreated: true, fleaTickFoundNow: false, foodOption: 'OWNER_FOOD'
+      };
+      var result;
+      if (type === 'OVERNIGHT') {
+        shared.units = units;
+        result = await gasCall('createStaffMultipleOvernightBookings', adminState.token, shared);
+        closeModal(); showToast('สร้าง ' + result.bookings.length + ' รายการแล้ว: ' + result.bookings.map(function(item) { return item.bookingCode; }).join(', '));
+      } else {
+        Object.assign(shared, units[0]);
+        result = await gasCall('createStaffBooking', adminState.token, shared);
+        closeModal(); showToast('สร้างรายการ ' + result.bookingCode + ' แล้ว');
+      }
+      await bootstrapAdmin();
+    } catch (error) { showToast(error.message, true); }
+    finally { setBusy(button, false, 'สร้างรายการ'); }
+  }
+
+  function showModal(content) {
+    document.getElementById('modal-root').innerHTML =
+      '<div class="modal-backdrop" onclick="if(event.target===this)closeModal()"><div class="modal">' + content + '</div></div>';
+    document.body.classList.add('modal-open');
+  }
+  function closeModal() {
+    document.getElementById('modal-root').innerHTML = '';
+    document.body.classList.remove('modal-open');
+  }
+  function roleLabel(role) { return { OWNER:'เจ้าของ', DOCTOR:'หมอ', STAFF:'พนักงาน' }[role] || role; }
+</script>
+
+</body>
+</html>

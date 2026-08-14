@@ -1,0 +1,83 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light;
+  --bmp-green-950: #123c2f;
+  --bmp-green-100: #dcefe4;
+  --bmp-surface: #f7faf8;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bmp-surface);
+  color: var(--bmp-green-950);
+  font-family: Arial, "Noto Sans Thai", sans-serif;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button,
+a,
+summary,
+select,
+input[type="date"],
+input[type="checkbox"] {
+  touch-action: manipulation;
+}
+
+dialog::backdrop {
+  background: rgb(0 0 0 / 0.55);
+}
+
+.form-input {
+  min-height: 44px;
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.75rem;
+  background: white;
+  padding: 0.65rem 0.75rem;
+  color: #0f172a;
+}
+
+.form-input:focus-visible {
+  outline: 2px solid #2d6a50;
+  outline-offset: 2px;
+}
+
+@media print {
+  @page {
+    size: 80mm auto;
+    margin: 0;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  .receipt-print-page,
+  .receipt-print-page * {
+    visibility: visible;
+  }
+
+  .receipt-print-page {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 80mm;
+    background: white;
+  }
+
+  .receipt-paper {
+    width: 80mm;
+    max-width: 80mm;
+    margin: 0;
+  }
+}

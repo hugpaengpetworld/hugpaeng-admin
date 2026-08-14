@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <?!= include('Styles'); ?>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark" data-brand-logo aria-hidden="true">🐾</div>
+      <div>
+        <strong data-clinic-name-th>คลินิกบ้านหมอปอยรักษาสัตว์</strong>
+        <small data-clinic-name-en>Baan Mhor Poy Vet Clinic</small>
+      </div>
+    </div>
+    <nav class="top-links" aria-label="เมนูหลัก">
+      <a class="btn btn-light btn-small hide-mobile" href="#booking-area">จองที่พัก</a>
+      <a class="btn btn-light btn-small" href="<?= appUrl ?>?page=admin">สำหรับพนักงาน</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-grid">
+        <div>
+          <p class="eyebrow">CAT & DOG BOARDING REQUEST</p>
+          <h1>ฝากน้องอย่างอุ่นใจ<br>เริ่มจากส่งคำขอจอง</h1>
+          <p>
+            ตรวจจำนวนห้องว่าง ส่งข้อมูลสัตว์เลี้ยง และติดตามสถานะได้จากหน้าเดียว
+            เมื่อส่งคำขอ ระบบจะกันห้องไว้และขึ้นสถานะ “รออนุมัติห้อง”
+          </p>
+          <a class="btn btn-light" href="#booking-area">เริ่มส่งคำขอ</a>
+        </div>
+        <aside class="hero-card" aria-label="ข้อมูลสำคัญ">
+          <strong>ข้อมูลก่อนจอง</strong>
+          <ul class="hero-list">
+            <li><span>✓</span><span>ห้องแมว 11 ห้อง และห้องพักสุนัข 7 ห้อง</span></li>
+            <li><span>✓</span><span>นัดหมายเช็กอิน–เช็กเอาท์ล่วงหน้าได้ตลอด 24 ชั่วโมง</span></li>
+            <li><span>✓</span><span>พนักงานยืนยันเวลานัดหมายกับลูกค้าอีกครั้ง</span></li>
+            <li><span>✓</span><span>มัดจำ 500 บาทเฉพาะการจองผ่าน LINE</span></li>
+          </ul>
+        </aside>
+      </div>
+    </section>
+
+    <section id="booking-area" class="page-shell">
+      <div class="section-head">
+        <p class="eyebrow">บริการออนไลน์</p>
+        <h2>จัดการคำขอของคุณ</h2>
+        <p>วันที่ใช้ลำดับ วัน-เดือน-ปี ค.ศ. และระบบจัดเก็บในรูปแบบมาตรฐานเพื่อคำนวณอย่างถูกต้อง</p>
+      </div>
+
+      <div class="tab-list" role="tablist" aria-label="บริการ">
+        <button class="tab" role="tab" data-tab="book" aria-selected="true">ค้นหาและจอง</button>
+        <button class="tab" role="tab" data-tab="track" aria-selected="false">ตรวจสอบสถานะ</button>
+        <button class="tab" role="tab" data-tab="reschedule" aria-selected="false">ขอเลื่อนวัน</button>
+        <button class="tab" role="tab" data-tab="payment" aria-selected="false">แนบสลิปมัดจำ</button>
+      </div>
+
+      <section id="tab-book" class="tab-panel">
+        <form id="booking-form" class="card">
+          <h3>1. เลือกช่วงเข้าพัก</h3>
+          <div class="form-grid">
+            <div class="field">
+              <label for="species">ประเภทสัตว์</label>
+              <select id="species" required>
+                <option value="CAT">แมว</option>
+                <option value="DOG">สุนัข</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="pet-count">จำนวนสัตว์ที่พักร่วมกัน</label>
+              <select id="pet-count" required>
+                <option value="1">1 ตัว</option>
+                <option value="2">2 ตัว</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>วันเช็กอิน (พ.ศ.)</label>
+              <div class="thai-date" data-date-picker="check-in"></div>
+            </div>
+            <div class="field">
+              <label>วันเช็กเอาต์ (พ.ศ.)</label>
+              <div class="thai-date" data-date-picker="check-out"></div>
+            </div>
+            <div class="field">
+              <label for="check-in-time">เวลาเช็กอิน</label>
+              <input id="check-in-time" type="time" value="10:00" required>
+            </div>
+            <div class="field">
+              <label for="check-out-time">เวลาเช็กเอาต์</label>
+              <input id="check-out-time" type="time" value="17:00" required>
+            </div>
+          </div>
+          <div class="notice warning">
+            สามารถนัดหมายล่วงหน้าได้ตลอด 24 ชั่วโมง และพนักงานจะยืนยันเวลารับ–ส่งอีกครั้ง
+          </div>
+          <div class="actions">
+            <button id="availability-btn" type="button" class="btn btn-primary">ตรวจห้องว่างและคำนวณราคา</button>
+          </div>
+
+          <div id="availability-result" hidden></div>
+          <div id="customer-details" hidden>
+            <hr style="border:0;border-top:1px solid var(--border);margin:26px 0">
+            <h3>2. ข้อมูลผู้จองและสัตว์เลี้ยง</h3>
+            <div class="form-grid">
+              <div class="field">
+                <label for="customer-name">ชื่อผู้จอง *</label>
+                <input id="customer-name" autocomplete="name">
+              </div>
+              <div class="field">
+                <label for="phone">เบอร์โทรศัพท์ *</label>
+                <input id="phone" inputmode="tel" autocomplete="tel" placeholder="08xxxxxxxx">
+              </div>
+              <div class="field span-2">
+                <label for="contact-handle">LINE ID / Facebook (ถ้ามี)</label>
+                <input id="contact-handle">
+              </div>
+            </div>
+            <div id="pets-container"></div>
+
+            <h3 style="margin-top:24px">3. สุขภาพ อาหาร และเอกสาร</h3>
+            <div class="form-grid">
+              <div class="field">
+                <label>กำจัดเห็บหมัดแล้วหรือไม่</label>
+                <div class="choice-row">
+                  <label class="choice"><input type="radio" name="flea-treated" value="true" checked> ทำแล้ว</label>
+                  <label class="choice"><input type="radio" name="flea-treated" value="false"> ยังไม่ได้ทำ</label>
+                </div>
+              </div>
+              <div class="field">
+                <label>พบเห็บหรือหมัดตอนนี้หรือไม่</label>
+                <div class="choice-row">
+                  <label class="choice"><input type="radio" name="flea-found" value="false" checked> ไม่พบ</label>
+                  <label class="choice"><input type="radio" name="flea-found" value="true"> พบ</label>
+                </div>
+              </div>
+              <div class="field">
+                <label for="flea-date">วันที่กำจัดล่าสุด (ถ้าจำได้)</label>
+                <input id="flea-date" type="date">
+              </div>
+              <div class="field">
+                <label for="flea-product">ชื่อผลิตภัณฑ์ (ถ้าจำได้)</label>
+                <input id="flea-product">
+              </div>
+              <div class="field">
+                <label for="food-option">อาหารระหว่างเข้าพัก</label>
+                <select id="food-option">
+                  <option value="OWNER_FOOD">เจ้าของนำมาเอง</option>
+                  <option value="CLINIC_FOOD">ใช้อาหารคลินิก (คิดเพิ่ม)</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="vaccination-file">สมุดวัคซีน (ไม่บังคับ)</label>
+                <input id="vaccination-file" type="file" accept="image/jpeg,image/png,image/webp,application/pdf">
+                <span class="hint">JPG, PNG, WEBP หรือ PDF ไม่เกิน 5 MB</span>
+              </div>
+              <div class="field span-2">
+                <label for="special-notes">ข้อมูลเพิ่มเติม</label>
+                <textarea id="special-notes" placeholder="สิ่งที่พนักงานควรทราบ"></textarea>
+              </div>
+            </div>
+            <div class="notice">
+              หากยังไม่ได้กำจัดเห็บหมัดหรือกำลังพบ ระบบยังรับคำขอ แต่จะทำเครื่องหมายให้พนักงานหรือหมอตรวจสอบ
+            </div>
+            <div class="actions">
+              <button id="submit-booking-btn" type="submit" class="btn btn-primary">ส่งคำขอและกันห้อง</button>
+            </div>
+          </div>
+        </form>
+      </section>
+
+      <section id="tab-track" class="tab-panel" hidden>
+        <form id="track-form" class="card">
+          <h3>ตรวจสอบสถานะการจอง</h3>
+          <div class="form-grid">
+            <div class="field"><label for="track-code">รหัสการจอง</label><input id="track-code" required></div>
+            <div class="field"><label for="track-phone">เบอร์โทรศัพท์ที่ใช้จอง</label><input id="track-phone" required></div>
+          </div>
+          <div class="actions"><button class="btn btn-primary">ตรวจสอบ</button></div>
+          <div id="track-result"></div>
+        </form>
+      </section>
+
+      <section id="tab-reschedule" class="tab-panel" hidden>
+        <form id="reschedule-form" class="card">
+          <h3>ส่งคำขอเลื่อนวันเข้าพัก</h3>
+          <div class="notice">เลื่อนได้ 1 ครั้ง ต้องแจ้งล่วงหน้าอย่างน้อย 3 วัน และขึ้นอยู่กับห้องว่าง</div>
+          <div class="form-grid">
+            <div class="field"><label for="reschedule-code">รหัสการจอง</label><input id="reschedule-code" required></div>
+            <div class="field"><label for="reschedule-phone">เบอร์โทรศัพท์ที่ใช้จอง</label><input id="reschedule-phone" required></div>
+            <div class="field"><label>วันเช็กอินใหม่ (พ.ศ.)</label><div class="thai-date" data-date-picker="new-check-in"></div></div>
+            <div class="field"><label>วันเช็กเอาต์ใหม่ (พ.ศ.)</label><div class="thai-date" data-date-picker="new-check-out"></div></div>
+            <div class="field span-2"><label for="reschedule-reason">เหตุผล (ไม่บังคับ)</label><textarea id="reschedule-reason"></textarea></div>
+          </div>
+          <div class="actions"><button class="btn btn-primary">ส่งคำขอเลื่อนวัน</button></div>
+        </form>
+      </section>
+
+      <section id="tab-payment" class="tab-panel" hidden>
+        <form id="payment-form" class="card">
+          <h3>แนบหลักฐานมัดจำ</h3>
+          <div class="notice warning">ใช้สำหรับรายการที่จองผ่าน LINE และได้รับอนุมัติแล้วเท่านั้น ต้องส่งภายใน 1 ชั่วโมง</div>
+          <div class="form-grid">
+            <div class="field"><label for="payment-code">รหัสการจอง</label><input id="payment-code" required></div>
+            <div class="field"><label for="payment-phone">เบอร์โทรศัพท์ที่ใช้จอง</label><input id="payment-phone" required></div>
+            <div class="field span-2"><label for="payment-slip">หลักฐานการโอน</label><input id="payment-slip" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" required></div>
+          </div>
+          <div id="payment-info" class="notice" hidden></div>
+          <div class="actions"><button class="btn btn-primary">ส่งหลักฐาน</button></div>
+        </form>
+      </section>
+    </section>
+  </main>
+
+  <footer style="background:var(--green-950);color:#d7eade;padding:28px 18px;text-align:center">
+    <strong data-clinic-name-th>คลินิกบ้านหมอปอยรักษาสัตว์</strong><br>
+    <small>คำขอทุกช่องทางต้องได้รับการตรวจสอบจากพนักงานก่อนยืนยัน</small>
+  </footer>
+
+  <?!= include('CommonClient'); ?>
+  <?!= include('PublicClient'); ?>
+</body>
+</html>

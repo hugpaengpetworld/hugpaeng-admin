@@ -1,0 +1,62 @@
+{
+  "name": "bmp-booking",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "build:cloudflare": "opennextjs-cloudflare build",
+    "preview:cloudflare": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "deploy:cloudflare": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint . --max-warnings=0",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:integration": "vitest run tests/integration --testTimeout=20000 --hookTimeout=30000",
+    "test:integration:staging": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/test-staging-database.ps1",
+    "test-fixtures:audit": "tsx scripts/audit-test-fixtures.ts",
+    "db:start": "supabase start",
+    "db:stop": "supabase stop",
+    "db:reset": "supabase db reset",
+    "db:test": "supabase test db",
+    "owner:invite": "tsx scripts/invite-owner.ts",
+    "owner:set-password": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/set-owner-password.ps1",
+    "platform:assign": "tsx scripts/assign-platform-role.ts",
+    "migration:rehearse": "tsx scripts/legacy-migration-rehearsal.ts"
+  },
+  "dependencies": {
+    "@supabase/ssr": "0.12.4",
+    "@supabase/supabase-js": "2.112.0",
+    "next": "16.3.0",
+    "qrcode": "^1.5.4",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "3.3.6",
+    "@opennextjs/cloudflare": "1.20.2",
+    "@tailwindcss/postcss": "4.3.3",
+    "@types/node": "26.1.2",
+    "@types/qrcode": "^1.5.6",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.4",
+    "eslint": "9.39.5",
+    "eslint-config-next": "16.3.0",
+    "postgres": "3.4.9",
+    "prettier": "3.9.6",
+    "prettier-plugin-tailwindcss": "0.8.1",
+    "supabase": "2.111.0",
+    "tailwindcss": "4.3.3",
+    "tsx": "4.23.6",
+    "typescript": "6.0.3",
+    "vitest": "4.1.10",
+    "wrangler": "^4.122.0"
+  }
+}
