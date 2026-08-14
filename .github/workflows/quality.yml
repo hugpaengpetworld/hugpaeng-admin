@@ -24,6 +24,11 @@ jobs:
           npm ci 2>&1 | tee npm-ci.log
           status=${PIPESTATUS[0]}
           if [ "$status" -ne 0 ]; then
+            annotation=$(tail -n 80 npm-ci.log)
+            annotation=${annotation//'%'/'%25'}
+            annotation=${annotation//$'\r'/'%0D'}
+            annotation=${annotation//$'\n'/'%0A'}
+            echo "::error title=npm ci failure::$annotation"
             {
               echo "### npm ci failure"
               echo '```text'
@@ -57,6 +62,11 @@ jobs:
           npm ci 2>&1 | tee npm-ci.log
           status=${PIPESTATUS[0]}
           if [ "$status" -ne 0 ]; then
+            annotation=$(tail -n 80 npm-ci.log)
+            annotation=${annotation//'%'/'%25'}
+            annotation=${annotation//$'\r'/'%0D'}
+            annotation=${annotation//$'\n'/'%0A'}
+            echo "::error title=npm ci failure::$annotation"
             {
               echo "### npm ci failure"
               echo '```text'
