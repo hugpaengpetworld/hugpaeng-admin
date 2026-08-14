@@ -3,7 +3,10 @@ import Link from "next/link";
 import { saveSterilizationHolidayAction } from "@/app/admin/sterilization/actions";
 import { SterilizationCalendarGrid } from "@/components/sterilization/sterilization-calendar-grid";
 import { Icon } from "@/components/ui/icon";
-import { requireTenantContext } from "@/data/auth/tenant-context";
+import {
+  requirePermission,
+  requireTenantContext,
+} from "@/data/auth/tenant-context";
 import {
   listSterilizationAppointments,
   listSterilizationHolidays,
@@ -36,8 +39,10 @@ export default async function SterilizationCalendarPage({
     listSterilizationAppointments({ month }),
     listSterilizationHolidays(month),
   ]);
-  const canManageHolidays =
-    context.role === "OWNER" || context.role === "DOCTOR";
+  requirePermission(context, "STERILIZATION_READ");
+  const canManageHolidays = context.permissions.includes(
+    "STERILIZATION_HOLIDAY_MANAGE",
+  );
   const activeHolidays = holidays.filter((item) => item.isActive);
 
   return (

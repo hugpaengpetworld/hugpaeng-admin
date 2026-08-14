@@ -58,8 +58,8 @@ These future modules must not be implemented speculatively during parity work, b
 ## 4. Latest product decisions that override legacy behavior
 
 - Check-in and checkout may be performed at any time. Do not enforce clinic opening hours or Thursday appointment windows.
-- Initial cat room IDs are `CAT01`–`CAT11`; an `OWNER` may add rooms and the system assigns the next sequential `CATxx` code atomically.
-- Initial dog room IDs are `DOG01`–`DOG07`; an `OWNER` may add rooms and the system assigns the next sequential `DOGxx` code atomically.
+- Initial cat room IDs are `CAT01`–`CAT11`; a user with `ROOM_INVENTORY_MANAGE` may add rooms and the system assigns the next sequential `CATxx` code atomically.
+- Initial dog room IDs are `DOG01`–`DOG07`; a user with `ROOM_INVENTORY_MANAGE` may add rooms and the system assigns the next sequential `DOGxx` code atomically.
 - The physical occupancy of a checked-in room continues until an authorized user explicitly checks out the booking. Planned checkout date alone never makes the room available.
 - Checkout changes the room to `CLEANING`, not directly to `AVAILABLE`.
 - “รอเช็กอินวันนี้” becomes **“รอเช็กอิน”** and displays all relevant waiting bookings, not only today's.
@@ -199,8 +199,8 @@ Rules:
 ## 13. Room user interface
 
 - Separate navigation items: `ห้องพักแมว` and `ห้องพักสุนัข`.
-- Each room screen provides an `OWNER`-only add-room control; room codes are generated sequentially in PostgreSQL and every creation is audited.
-- Each room screen also provides an `OWNER`-only remove-room control. Removal is an audited retirement, not a physical delete: the room is hidden from active planning, its historical booking/stay references remain intact, and PostgreSQL rejects retirement while an open stay or active `HOLD`/`RESERVED` allocation exists.
+- Each room screen provides an add-room control to users with `ROOM_INVENTORY_MANAGE`; room codes are generated sequentially in PostgreSQL and every creation is audited.
+- Each room screen also provides a remove-room control to users with `ROOM_INVENTORY_MANAGE`. Removal is an audited retirement, not a physical delete: the room is hidden from active planning, its historical booking/stay references remain intact, and PostgreSQL rejects retirement while an open stay or active `HOLD`/`RESERVED` allocation exists.
 - Each screen has previous day, today, selected date, and next day controls and supports future dates.
 - Cards are clickable.
 - Available card can begin a back-office booking.
@@ -255,9 +255,22 @@ Rules:
 
 Clinic roles:
 
-- `OWNER`: full tenant management, users, settings, finance/refunds, audit, bookings, rooms, sterilization.
-- `DOCTOR`: operational bookings, check-in/out, room and health review, sterilization, relevant clinical information; no tenant ownership or user administration.
-- `STAFF`: booking operations, check-in/out, payment verification, charges, rooms, and sterilization operations; no owner-only settings or user administration.
+- `OWNER`: unrestricted tenant management, including every clinic capability, users, settings, finance/refunds, audit, bookings, rooms, sterilization, and future medical records.
+- `ADMIN`: unrestricted clinic capabilities except that an ADMIN must never create, promote, suspend, revoke, or otherwise manage an `OWNER` membership.
+- `DOCTOR`: veterinarian workflow baseline, with tenant-specific capability overrides.
+- `STAFF`: general clinic operations baseline, with tenant-specific capability overrides.
+- `COUNTER`: front-desk/customer/booking/payment baseline, with tenant-specific capability overrides.
+- `ASSISTANT`: veterinary-assistant/customer/health/operational baseline, with tenant-specific capability overrides.
+
+`OWNER` and `ADMIN` may configure per-user capabilities when inviting or editing a non-owner membership. Authorization is enforced in server actions, transactional RPC entry points, table RLS, and private Storage policies. A hidden menu or disabled button is never sufficient authorization.
+
+### Central customer and patient registry
+
+- Search accepts normalized phone, owner name prefix, pet name prefix, or exact HN.
+- Existing customers are selected instead of re-entered; one workflow may select several existing pets belonging to that customer.
+- Staff may add another pet under an existing customer, or create a new customer with one to ten pets transactionally.
+- Every pet receives its own immutable, tenant-scoped HN in the form `HN-000001`; an owner's several pets never share an HN and retired HNs are never reused.
+- Registry selection is supported by boarding and sterilization creation. A full veterinary EMR, IDEXX/device integration, IPD, treatment, inventory, payroll, and clinical billing remain separately staged future scope.
 
 Platform roles and temporary support access are described in `docs/RBAC_AND_SECURITY.md`.
 

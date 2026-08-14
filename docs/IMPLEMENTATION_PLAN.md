@@ -89,3 +89,11 @@ Exit: expired/revoked grants fail at server/RLS level and support actions are tr
 - Clinic owner acceptance and cutover.
 
 Exit: `ACCEPTANCE_TESTS.md` passes and rollback/cutover is documented.
+
+### Version 1 registry and capability hardening before Gate 3
+
+- Expand clinic roles to OWNER, ADMIN, DOCTOR, STAFF, COUNTER, and ASSISTANT.
+- Add OWNER/ADMIN-managed per-user capabilities; ADMIN cannot manage OWNER.
+- Add the central customer/patient registry, immutable per-pet HN, multi-pet selection, and registry-backed boarding/sterilization creation.
+- Re-run the clean staging migration and full integration suite before continuing backup/restore Gate 3.
+- Keep full EMR, IDEXX/device integration, IPD, treatment/inventory/POS/payroll and referral workflows out of Version 1 unless separately approved.

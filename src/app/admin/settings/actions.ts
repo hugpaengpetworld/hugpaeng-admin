@@ -6,7 +6,10 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
-import { requireOwner, requireTenantContext } from "@/data/auth/tenant-context";
+import {
+  requirePermission,
+  requireTenantContext,
+} from "@/data/auth/tenant-context";
 import {
   detectLogoFileType,
   type LogoExtension,
@@ -97,7 +100,7 @@ export async function updateClinicSettingsAction(
   formData: FormData,
 ): Promise<void> {
   const context = await requireTenantContext();
-  requireOwner(context);
+  requirePermission(context, "SETTINGS_MANAGE");
   const input = settingsSchema.safeParse({
     thaiName: formData.get("thaiName"),
     englishName: formData.get("englishName"),

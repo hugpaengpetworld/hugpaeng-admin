@@ -4,7 +4,10 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
-import { requireTenantContext } from "@/data/auth/tenant-context";
+import {
+  requirePermission,
+  requireTenantContext,
+} from "@/data/auth/tenant-context";
 import {
   sterilizationAppointmentSchema,
   sterilizationStatusSchema,
@@ -30,15 +33,19 @@ const safeErrors = [
   "INVALID_STATUS_TRANSITION",
   "REASON_REQUIRED",
   "FORBIDDEN",
+  "PET_SEX_REQUIRED",
 ] as const;
 
 export async function createSterilizationAppointmentAction(
   formData: FormData,
 ): Promise<void> {
   const context = await requireTenantContext();
+  requirePermission(context, "STERILIZATION_WRITE");
   const weightValue = String(formData.get("weightKg") ?? "").trim();
   const input = sterilizationAppointmentSchema.safeParse({
     appointmentDate: formData.get("appointmentDate"),
+    customerId: formData.get("customerId") || undefined,
+    petId: formData.get("petId") || undefined,
     appointmentTime: formData.get("appointmentTime"),
     customerName: formData.get("customerName"),
     phone: formData.get("phone"),
@@ -59,25 +66,37 @@ export async function createSterilizationAppointmentAction(
     redirect("/admin/sterilization/new?error=VALIDATION_ERROR");
 
   const supabase = await createSupabaseServerClient();
-  const { error } = await supabase.rpc("create_sterilization_appointment", {
-    p_tenant_id: context.tenantId,
-    p_appointment_date: input.data.appointmentDate,
-    p_appointment_time: input.data.appointmentTime,
-    p_customer_name: input.data.customerName,
-    p_phone: input.data.phone,
-    p_pet_name: input.data.petName,
-    p_species: input.data.species,
-    p_custom_species: input.data.customSpecies ?? null,
-    p_sex: input.data.sex,
-    p_breed: input.data.breed ?? null,
-    p_weight_kg: input.data.weightKg ?? null,
-    p_age_text: input.data.ageText ?? null,
-    p_vaccination_status: input.data.vaccinationStatus ?? null,
-    p_source_channel: input.data.sourceChannel,
-    p_notes: input.data.notes ?? null,
-    p_acknowledge_overbook: input.data.acknowledgeOverbook,
-    p_holiday_override: input.data.holidayOverride,
-  });
+  const { error } = input.data.customerId
+    ? await supabase.rpc("create_registry_sterilization_appointment", {
+        p_tenant_id: context.tenantId,
+        p_customer_id: input.data.customerId,
+        p_pet_id: input.data.petId!,
+        p_appointment_date: input.data.appointmentDate,
+        p_appointment_time: input.data.appointmentTime,
+        p_source_channel: input.data.sourceChannel,
+        p_notes: input.data.notes ?? null,
+        p_acknowledge_overbook: input.data.acknowledgeOverbook,
+        p_holiday_override: input.data.holidayOverride,
+      })
+    : await supabase.rpc("create_sterilization_appointment", {
+        p_tenant_id: context.tenantId,
+        p_appointment_date: input.data.appointmentDate,
+        p_appointment_time: input.data.appointmentTime,
+        p_customer_name: input.data.customerName,
+        p_phone: input.data.phone,
+        p_pet_name: input.data.petName,
+        p_species: input.data.species,
+        p_custom_species: input.data.customSpecies ?? null,
+        p_sex: input.data.sex,
+        p_breed: input.data.breed ?? null,
+        p_weight_kg: input.data.weightKg ?? null,
+        p_age_text: input.data.ageText ?? null,
+        p_vaccination_status: input.data.vaccinationStatus ?? null,
+        p_source_channel: input.data.sourceChannel,
+        p_notes: input.data.notes ?? null,
+        p_acknowledge_overbook: input.data.acknowledgeOverbook,
+        p_holiday_override: input.data.holidayOverride,
+      });
   if (error)
     redirectSterilizationError("/admin/sterilization/new", error.message);
 
@@ -90,7 +109,8 @@ export async function createSterilizationAppointmentAction(
 export async function updateSterilizationStatusAction(
   formData: FormData,
 ): Promise<void> {
-  await requireTenantContext();
+  const context = await requireTenantContext();
+  requirePermission(context, "STERILIZATION_WRITE");
   const appointmentId = z.uuid().safeParse(formData.get("appointmentId"));
   const status = sterilizationStatusSchema.safeParse(formData.get("status"));
   const returnPath = String(
@@ -119,7 +139,7 @@ export async function saveSterilizationHolidayAction(
   formData: FormData,
 ): Promise<void> {
   const context = await requireTenantContext();
-  if (context.role === "STAFF") redirect("/unauthorized");
+  requirePermission(context, "STERILIZATION_HOLIDAY_MANAGE");
   const input = holidaySchema.safeParse({
     holidayDate: formData.get("holidayDate"),
     reason: formData.get("reason"),

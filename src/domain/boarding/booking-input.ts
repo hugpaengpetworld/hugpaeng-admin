@@ -9,6 +9,7 @@ const optionalWeightSchema = z.preprocess(
 );
 
 export const bookingPetInputSchema = z.object({
+  petId: z.uuid().optional(),
   name: z.string().trim().min(1).max(120),
   weightKg: optionalWeightSchema,
   fleaTickTreated: z.boolean().optional(),
@@ -63,6 +64,7 @@ const bookingDatesSchema = z
   });
 
 const customerSchema = z.object({
+  customerId: z.uuid().optional(),
   customerName: z.string().trim().min(1).max(200),
   customerPhone: z
     .string()
@@ -103,6 +105,31 @@ export const backOfficeBookingSchema = z
         code: "custom",
         path: ["units"],
         message: "ไม่สามารถเลือกห้องซ้ำในรายการเดียวกันได้",
+      });
+    }
+    const selectedPetIds = input.units.flatMap((unit) =>
+      unit.pets.flatMap((pet) => (pet.petId ? [pet.petId] : [])),
+    );
+    if (input.customerId) {
+      const totalPets = input.units.reduce(
+        (total, unit) => total + unit.pets.length,
+        0,
+      );
+      if (
+        selectedPetIds.length !== totalPets ||
+        new Set(selectedPetIds).size !== selectedPetIds.length
+      ) {
+        context.addIssue({
+          code: "custom",
+          path: ["units"],
+          message: "REGISTRY_PETS_REQUIRED",
+        });
+      }
+    } else if (selectedPetIds.length > 0) {
+      context.addIssue({
+        code: "custom",
+        path: ["customerId"],
+        message: "REGISTRY_CUSTOMER_REQUIRED",
       });
     }
   });

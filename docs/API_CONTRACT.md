@@ -65,12 +65,12 @@ Overbook acknowledgement is required only when normal capacity would be exceeded
 
 - `verifyDeposit(paymentId, evidence)`
 - `recordRefund(paymentId, matchingAccountEvidence)`
-  - OWNER-only; ชื่อบัญชี normalized และเลขท้าย 4 หลักต้องตรงกับหลักฐานเงินมัดจำเดิม
+  - ต้องมี `REFUNDS_MANAGE`; ชื่อบัญชี normalized และเลขท้าย 4 หลักต้องตรงกับหลักฐานเงินมัดจำเดิม
 - `getReceipt(receiptId)`
 - `reprintReceipt(receiptId)`
 - `voidReceipt(receiptId, reason)`
 - `reissueReceipt(receiptId, reason)`
-  - OWNER-only; void ใบเดิมและคัดลอก immutable snapshot ไปเลขใหม่ใน transaction เดียว
+  - ต้องมี `RECEIPTS_MANAGE`; void ใบเดิมและคัดลอก immutable snapshot ไปเลขใหม่ใน transaction เดียว
 - `regenerateReceiptArtifact(receiptId)`
 
 Receipt queries return immutable snapshots, not current mutable customer/booking fields.

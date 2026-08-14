@@ -3,7 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { requireTenantContext } from "@/data/auth/tenant-context";
+import {
+  requirePermission,
+  requireTenantContext,
+} from "@/data/auth/tenant-context";
 import { backOfficeBookingSchema } from "@/domain/boarding/booking-input";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -26,6 +29,10 @@ export async function createBackOfficeBookingAction(
   const context = await requireTenantContext();
   const submittedIntent = formData.get("intent");
   const intent = submittedIntent === "check_in" ? "check_in" : "request";
+  requirePermission(
+    context,
+    intent === "check_in" ? "CHECK_IN" : "BOOKINGS_WRITE",
+  );
   const serialized = formData.get("payload");
   let raw: unknown;
   try {
@@ -58,6 +65,9 @@ export async function createBackOfficeBookingAction(
     p_customer_notes: input.data.customerNotes ?? null,
     p_units: input.data.units,
   };
+  if (intent === "check_in" && input.data.customerId) {
+    redirect("/admin/bookings/new?error=REGISTRY_DIRECT_CHECKIN_UNSUPPORTED");
+  }
   const { error } =
     intent === "check_in"
       ? await supabase.rpc("create_and_check_in_back_office_booking", {
@@ -65,10 +75,21 @@ export async function createBackOfficeBookingAction(
           p_deposit_satang: input.data.depositSatang,
           p_idempotency_key: input.data.idempotencyKey,
         })
-      : await supabase.rpc(
-          "create_priced_back_office_booking",
-          commonArguments,
-        );
+      : input.data.customerId
+        ? await supabase.rpc("create_registry_priced_back_office_booking", {
+            p_tenant_id: context.tenantId,
+            p_customer_id: input.data.customerId,
+            p_line_user_id: input.data.lineUserId ?? null,
+            p_channel: input.data.channel,
+            p_check_in_date: input.data.checkInDate,
+            p_check_out_date: input.data.checkOutDate,
+            p_customer_notes: input.data.customerNotes ?? null,
+            p_units: input.data.units,
+          })
+        : await supabase.rpc(
+            "create_priced_back_office_booking",
+            commonArguments,
+          );
   if (error) {
     const code = safeErrors.find((item) => error.message.includes(item));
     redirect(
@@ -90,7 +111,8 @@ export async function createBackOfficeBookingAction(
 }
 
 export async function reviewBookingAction(formData: FormData): Promise<void> {
-  await requireTenantContext();
+  const context = await requireTenantContext();
+  requirePermission(context, "BOOKINGS_WRITE");
   const bookingId = formData.get("bookingId");
   const decision = formData.get("decision");
   const reason = formData.get("reason");
@@ -118,7 +140,8 @@ export async function reviewBookingAction(formData: FormData): Promise<void> {
 }
 
 export async function verifyDepositAction(formData: FormData): Promise<void> {
-  await requireTenantContext();
+  const context = await requireTenantContext();
+  requirePermission(context, "PAYMENTS_VERIFY");
   const paymentId = formData.get("paymentId");
   const expectedVersion = Number(formData.get("expectedVersion"));
   if (typeof paymentId !== "string" || !Number.isInteger(expectedVersion)) {
@@ -137,7 +160,8 @@ export async function verifyDepositAction(formData: FormData): Promise<void> {
 export async function decideRescheduleAction(
   formData: FormData,
 ): Promise<void> {
-  await requireTenantContext();
+  const context = await requireTenantContext();
+  requirePermission(context, "BOOKINGS_WRITE");
   const requestId = formData.get("requestId");
   const decision = formData.get("decision");
   const reason = formData.get("reason");

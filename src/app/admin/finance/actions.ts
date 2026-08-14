@@ -3,13 +3,17 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { requireOwner, requireTenantContext } from "@/data/auth/tenant-context";
+import {
+  requirePermission,
+  requireTenantContext,
+} from "@/data/auth/tenant-context";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function recordDepositSourceAction(
   formData: FormData,
 ): Promise<void> {
-  await requireTenantContext();
+  const context = await requireTenantContext();
+  requirePermission(context, "PAYMENTS_VERIFY");
   const receiptId = field(formData, "receiptId");
   const paymentId = field(formData, "paymentId");
   const accountName = field(formData, "accountName");
@@ -29,7 +33,7 @@ export async function recordDepositSourceAction(
 
 export async function recordRefundAction(formData: FormData): Promise<void> {
   const context = await requireTenantContext();
-  requireOwner(context);
+  requirePermission(context, "REFUNDS_MANAGE");
   const receiptId = field(formData, "receiptId");
   const paymentId = field(formData, "paymentId");
   const accountName = field(formData, "accountName");
@@ -50,7 +54,7 @@ export async function recordRefundAction(formData: FormData): Promise<void> {
 
 export async function voidReceiptAction(formData: FormData): Promise<void> {
   const context = await requireTenantContext();
-  requireOwner(context);
+  requirePermission(context, "RECEIPTS_MANAGE");
   const receiptId = field(formData, "receiptId");
   const reason = field(formData, "reason");
   const supabase = await createSupabaseServerClient();
@@ -66,7 +70,7 @@ export async function voidReceiptAction(formData: FormData): Promise<void> {
 
 export async function reissueReceiptAction(formData: FormData): Promise<void> {
   const context = await requireTenantContext();
-  requireOwner(context);
+  requirePermission(context, "RECEIPTS_MANAGE");
   const receiptId = field(formData, "receiptId");
   const reason = field(formData, "reason");
   const supabase = await createSupabaseServerClient();
@@ -84,7 +88,8 @@ export async function reissueReceiptAction(formData: FormData): Promise<void> {
 export async function regenerateReceiptArtifactAction(
   formData: FormData,
 ): Promise<void> {
-  await requireTenantContext();
+  const context = await requireTenantContext();
+  requirePermission(context, "RECEIPTS_MANAGE");
   const receiptId = field(formData, "receiptId");
   const supabase = await createSupabaseServerClient();
   const { error } = await supabase.rpc("regenerate_receipt_artifact", {

@@ -47,8 +47,9 @@ export default async function ReceiptDetailPage({
   ]);
   const receipt = await getReceiptDetail(receiptId);
   if (!receipt) notFound();
-  const canRecordSource = context.role === "OWNER" || context.role === "STAFF";
-  const isOwner = context.role === "OWNER";
+  const canRecordSource = context.permissions.includes("PAYMENTS_VERIFY");
+  const canRefund = context.permissions.includes("REFUNDS_MANAGE");
+  const canManageReceipt = context.permissions.includes("RECEIPTS_MANAGE");
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -226,7 +227,7 @@ export default async function ReceiptDetailPage({
                   บันทึกหลักฐานบัญชีต้นทาง
                 </button>
               </form>
-            ) : isOwner ? (
+            ) : canRefund ? (
               <form
                 action={recordRefundAction}
                 className="mt-4 grid gap-4 sm:grid-cols-2"
@@ -276,7 +277,7 @@ export default async function ReceiptDetailPage({
           </section>
         )}
 
-      {isOwner && receipt.status === "ISSUED" && (
+      {canManageReceipt && receipt.status === "ISSUED" && (
         <section className="mt-6 rounded-2xl border border-red-200 bg-white p-5 sm:p-6">
           <h2 className="text-lg font-bold text-red-800">
             แก้ไขเอกสารโดยไม่เขียนทับ

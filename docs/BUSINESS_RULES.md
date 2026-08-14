@@ -41,7 +41,7 @@
 - The system must not infer checkout from the clock.
 - Room species and booking species must match.
 - A room in cleaning, maintenance, or disabled state cannot receive a new physical check-in.
-- Only an active tenant `OWNER` may remove a room from active inventory. The operation is a soft retirement with a required reason and audit fact; room codes are never reused and historical bookings/stays continue to reference the retired room.
+- Only an active tenant user with `ROOM_INVENTORY_MANAGE` may remove a room from active inventory. The operation is a soft retirement with a required reason and audit fact; room codes are never reused and historical bookings/stays continue to reference the retired room.
 - A room with an open physical stay or any active `HOLD`/`RESERVED` allocation cannot be retired. Staff must complete checkout or cancel/release the booking first.
 - Availability check and allocation creation must be one transaction.
 - Direct check-in from an available room card creates, confirms, allocates, and opens all requested room stays in one transaction. A conflict in any room rolls back the complete booking group.

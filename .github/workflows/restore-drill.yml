@@ -1,0 +1,136 @@
+name: database restore drill
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: database-restore-drill
+  cancel-in-progress: false
+
+jobs:
+  restore-drill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      SOURCE_PROJECT_REF: wnnxdcxuxupmnplkegkt
+      TARGET_PROJECT_REF: svgmzjphmdqfeptalxhe
+      POOLER_HOST: aws-0-ap-southeast-1.pooler.supabase.com
+      SOURCE_DB_PASSWORD: ${{ secrets.CLEAN_STAGING_DB_PASSWORD }}
+      TARGET_DB_PASSWORD: ${{ secrets.RESTORE_DRILL_DB_PASSWORD }}
+      TARGET_SUPABASE_URL: https://svgmzjphmdqfeptalxhe.supabase.co
+      TARGET_SUPABASE_ANON_KEY: ${{ secrets.RESTORE_DRILL_ANON_KEY }}
+      TARGET_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.RESTORE_DRILL_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.111.0
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate protected inputs and build process-only URLs
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "$SOURCE_DB_PASSWORD" || -z "$TARGET_DB_PASSWORD" || \
+                -z "$TARGET_SUPABASE_ANON_KEY" || -z "$TARGET_SUPABASE_SERVICE_ROLE_KEY" ]]; then
+            echo "Required restore-drill secrets are missing." >&2
+            exit 1
+          fi
+          if [[ "$SOURCE_PROJECT_REF" == "$TARGET_PROJECT_REF" ]]; then
+            echo "Source and target project refs must differ." >&2
+            exit 1
+          fi
+          node <<'NODE'
+          const { appendFileSync } = require("node:fs");
+          const sourcePassword = encodeURIComponent(process.env.SOURCE_DB_PASSWORD);
+          const targetPassword = encodeURIComponent(process.env.TARGET_DB_PASSWORD);
+          const host = process.env.POOLER_HOST;
+          const sourceRef = process.env.SOURCE_PROJECT_REF;
+          const targetRef = process.env.TARGET_PROJECT_REF;
+          appendFileSync(
+            process.env.GITHUB_ENV,
+            `SOURCE_DATABASE_URL=postgresql://postgres.${sourceRef}:${sourcePassword}@${host}:5432/postgres\n` +
+              `TARGET_DATABASE_URL=postgresql://postgres.${targetRef}:${targetPassword}@${host}:5432/postgres\n`,
+          );
+          NODE
+
+      - name: Create encrypted-runner backup artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          backup_dir="$RUNNER_TEMP/gate3-backup"
+          mkdir -p "$backup_dir"
+          supabase db dump --db-url "$SOURCE_DATABASE_URL" --role-only --file "$backup_dir/roles.sql"
+          supabase db dump --db-url "$SOURCE_DATABASE_URL" --file "$backup_dir/schema.sql"
+          supabase db dump --db-url "$SOURCE_DATABASE_URL" --data-only --use-copy --file "$backup_dir/data.sql"
+          test -s "$backup_dir/schema.sql"
+          test -s "$backup_dir/data.sql"
+          sha256sum "$backup_dir"/*.sql > "$backup_dir/SHA256SUMS"
+          {
+            echo "### Gate 3 backup"
+            echo "Backup files were created in the ephemeral runner and were not uploaded."
+            echo '```text'
+            sed "s#$backup_dir/##" "$backup_dir/SHA256SUMS"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Rebuild only the locked restore target
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "$TARGET_DATABASE_URL" in
+            *"postgres.${TARGET_PROJECT_REF}:"*"@${POOLER_HOST}:5432/postgres") ;;
+            *) echo "Restore target safety lock failed." >&2; exit 1 ;;
+          esac
+          supabase db reset --db-url "$TARGET_DATABASE_URL" --no-seed --yes
+
+      - name: Restore application data
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install --yes postgresql-client
+          psql "$TARGET_DATABASE_URL" \
+            --set ON_ERROR_STOP=on \
+            --single-transaction \
+            --file "$RUNNER_TEMP/gate3-backup/data.sql"
+
+      - name: Reconcile schema and every public table
+        run: npm run gate3:reconcile
+
+      - name: Verify Auth create, password login, and cleanup
+        run: npm run gate3:auth-smoke
+
+      - name: Run critical database workflows against restored target
+        run: npm run test:integration
+        env:
+          TEST_DATABASE_URL: ${{ env.TARGET_DATABASE_URL }}
+
+      - name: Prove test cleanup and restored-data integrity
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run gate3:reconcile
+          REQUIRE_CLEAN_TEST_FIXTURES=1 \
+          NEXT_PUBLIC_SUPABASE_URL="$TARGET_SUPABASE_URL" \
+          SUPABASE_SERVICE_ROLE_KEY="$TARGET_SUPABASE_SERVICE_ROLE_KEY" \
+          npm run test-fixtures:audit
+
+      - name: Remove temporary backup
+        if: always()
+        shell: bash
+        run: |
+          backup_dir="$RUNNER_TEMP/gate3-backup"
+          if [[ -d "$backup_dir" ]]; then
+            find "$backup_dir" -type f -exec shred -u {} + 2>/dev/null || true
+            rm -rf "$backup_dir"
+          fi

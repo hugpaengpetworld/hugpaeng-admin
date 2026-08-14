@@ -1,6 +1,11 @@
 import Link from "next/link";
 
 import { BackOfficeBookingForm } from "@/components/bookings/back-office-booking-form";
+import {
+  requirePermission,
+  requireTenantContext,
+} from "@/data/auth/tenant-context";
+import { getRegistrySelection } from "@/data/customers/registry";
 
 const errors: Readonly<Record<string, string>> = {
   VALIDATION_ERROR: "กรุณาตรวจสอบข้อมูลที่กรอกให้ครบและถูกต้อง",
@@ -10,15 +15,35 @@ const errors: Readonly<Record<string, string>> = {
   CAPACITY_EXCEEDED: "จำนวนสัตว์หรือห้องเกินความจุที่กำหนด",
   LINE_ID_REQUIRED: "การจองผ่าน LINE ต้องระบุ LINE user ID",
   CUSTOM_NIGHTLY_RATE_INVALID: "ค่าห้องพักต่อคืนไม่ถูกต้อง",
+  REGISTRY_DIRECT_CHECKIN_UNSUPPORTED:
+    "รายการจากทะเบียนลูกค้าต้องสร้างคำขอจองก่อน แล้วจึงเช็กอินจากการ์ดห้องพัก",
   UNKNOWN: "บันทึกการจองไม่สำเร็จ กรุณาลองใหม่",
 };
 
 export default async function NewBookingPage({
   searchParams,
 }: {
-  readonly searchParams: Promise<{ error?: string }>;
+  readonly searchParams: Promise<{
+    error?: string;
+    customerId?: string;
+    petIds?: string;
+  }>;
 }) {
-  const query = await searchParams;
+  const [query, context] = await Promise.all([
+    searchParams,
+    requireTenantContext(),
+  ]);
+  requirePermission(context, "BOOKINGS_WRITE");
+  const petIds = (query.petIds ?? "")
+    .split(",")
+    .filter((value) => /^[0-9a-f-]{36}$/i.test(value))
+    .slice(0, 18);
+  const registryCustomer =
+    query.customerId &&
+    /^[0-9a-f-]{36}$/i.test(query.customerId) &&
+    petIds.length
+      ? await getRegistrySelection(query.customerId, petIds)
+      : null;
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       <header>
@@ -37,6 +62,21 @@ export default async function NewBookingPage({
         </p>
       </header>
       <BackOfficeBookingForm
+        registryCustomer={
+          registryCustomer
+            ? {
+                id: registryCustomer.id,
+                name: registryCustomer.name,
+                phone: registryCustomer.phone,
+                pets: registryCustomer.pets.map((pet) => ({
+                  id: pet.id,
+                  name: pet.name,
+                  species: pet.species,
+                  weightKg: pet.weightKg,
+                })),
+              }
+            : undefined
+        }
         errorMessage={
           query.error ? (errors[query.error] ?? errors.UNKNOWN) : undefined
         }

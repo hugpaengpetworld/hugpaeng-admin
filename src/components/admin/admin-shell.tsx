@@ -7,6 +7,7 @@ import { useState } from "react";
 import { logoutAction } from "@/app/(auth)/actions";
 import { ClinicMark } from "@/components/branding/clinic-mark";
 import { Icon, type IconName } from "@/components/ui/icon";
+import { roleLabels, type TenantPermission } from "@/domain/auth/permissions";
 import type { ClinicRole } from "@/data/auth/tenant-context";
 
 interface NavItem {
@@ -14,33 +15,61 @@ interface NavItem {
   readonly href?: string;
   readonly icon: IconName;
   readonly ownerOnly?: boolean;
+  readonly permission?: TenantPermission;
   readonly future?: string;
 }
 
 const navigation: readonly NavItem[] = [
   { label: "HOME", href: "/admin", icon: "dashboard" },
   {
+    label: "ทะเบียนลูกค้า–สัตว์เลี้ยง",
+    href: "/admin/customers",
+    icon: "users",
+    permission: "CUSTOMERS_READ",
+  },
+  {
     label: "รายการจองฝากเลี้ยง",
     href: "/admin/bookings",
     icon: "calendar",
+    permission: "BOOKINGS_READ",
   },
-  { label: "เช็กอิน–เช็กเอาต์", href: "/admin/operations", icon: "home" },
-  { label: "ห้องพักแมว", href: "/admin/rooms/cats", icon: "cat" },
-  { label: "ห้องพักสุนัข", href: "/admin/rooms/dogs", icon: "dog" },
-  { label: "ปฏิทินคิวทำหมัน", href: "/admin/sterilization", icon: "calendar" },
-  { label: "การเงิน", href: "/admin/finance", icon: "finance" },
+  {
+    label: "เช็กอิน–เช็กเอาต์",
+    href: "/admin/operations",
+    icon: "home",
+    permission: "BOOKINGS_READ",
+  },
+  {
+    label: "ห้องพักแมว",
+    href: "/admin/rooms/cats",
+    icon: "cat",
+    permission: "BOOKINGS_READ",
+  },
+  {
+    label: "ห้องพักสุนัข",
+    href: "/admin/rooms/dogs",
+    icon: "dog",
+    permission: "BOOKINGS_READ",
+  },
+  {
+    label: "ปฏิทินคิวทำหมัน",
+    href: "/admin/sterilization",
+    icon: "calendar",
+    permission: "STERILIZATION_READ",
+  },
+  {
+    label: "การเงิน",
+    href: "/admin/finance",
+    icon: "finance",
+    permission: "PAYMENTS_COLLECT",
+  },
 ];
-
-const roleLabels: Record<ClinicRole, string> = {
-  OWNER: "เจ้าของคลินิก",
-  DOCTOR: "สัตวแพทย์",
-  STAFF: "พนักงาน",
-};
 
 export function AdminShell({
   children,
   displayName,
   role,
+  permissions,
   thaiName,
   englishName,
   logoUrl,
@@ -48,6 +77,7 @@ export function AdminShell({
   readonly children: React.ReactNode;
   readonly displayName: string;
   readonly role: ClinicRole;
+  readonly permissions: readonly TenantPermission[];
   readonly thaiName: string;
   readonly englishName: string;
   readonly logoUrl: string | null;
@@ -55,7 +85,9 @@ export function AdminShell({
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const visibleNavigation = navigation.filter(
-    (item) => !item.ownerOnly || role === "OWNER",
+    (item) =>
+      (!item.ownerOnly || role === "OWNER") &&
+      (!item.permission || permissions.includes(item.permission)),
   );
 
   if (

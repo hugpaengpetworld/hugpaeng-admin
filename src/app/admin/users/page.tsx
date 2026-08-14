@@ -3,14 +3,16 @@ import {
   manageTenantMembershipAction,
 } from "@/app/admin/users/actions";
 import { AdminSettingsNavigation } from "@/components/admin/admin-settings-navigation";
-import { requireOwner, requireTenantContext } from "@/data/auth/tenant-context";
-import { listTenantUsers } from "@/data/users/tenant-users";
+import {
+  requireTenantContext,
+  requireUserManager,
+} from "@/data/auth/tenant-context";
+import { clinicRoles, roleLabels } from "@/domain/auth/permissions";
+import {
+  listPermissionOptions,
+  listTenantUsers,
+} from "@/data/users/tenant-users";
 
-const roleLabels = {
-  OWNER: "เจ้าของคลินิก",
-  DOCTOR: "สัตวแพทย์",
-  STAFF: "พนักงาน",
-} as const;
 const statusLabels = {
   INVITED: "ส่งคำเชิญแล้ว",
   ACTIVE: "ใช้งาน",
@@ -24,21 +26,26 @@ export default async function UsersPage({
   readonly searchParams: Promise<{ success?: string; error?: string }>;
 }) {
   const context = await requireTenantContext();
-  requireOwner(context);
-  const [query, users] = await Promise.all([searchParams, listTenantUsers()]);
+  requireUserManager(context);
+  const [query, users, permissionOptions] = await Promise.all([
+    searchParams,
+    listTenantUsers(),
+    listPermissionOptions(),
+  ]);
   return (
     <div className="min-h-screen bg-[#f5f8f6] px-4 py-6 sm:px-6 lg:px-8 lg:py-10">
       <div className="mx-auto max-w-6xl space-y-6">
         <header>
           <AdminSettingsNavigation active="users" />
           <p className="mt-6 text-sm font-semibold text-[#2d6a50]">
-            เจ้าของคลินิกเท่านั้น
+            สำหรับ OWNER และ ADMIN
           </p>
           <h1 className="mt-1 text-2xl font-bold sm:text-3xl">
             เพิ่มผู้ใช้งาน
           </h1>
           <p className="mt-2 text-sm text-slate-600">
-            เชิญผ่าน Supabase Auth และบังคับ role/tenant ที่ server และ RLS
+            เชิญผ่าน Supabase Auth และบังคับบทบาท tenant และสิทธิ์ที่ server กับ
+            RLS โดย ADMIN ไม่สามารถจัดการ OWNER ได้
           </p>
         </header>
         {query.success && (
@@ -61,7 +68,7 @@ export default async function UsersPage({
           <h2 className="text-lg font-bold">เชิญผู้ใช้งาน</h2>
           <form
             action={inviteTenantUserAction}
-            className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
+            className="mt-4 grid gap-4 sm:grid-cols-2"
           >
             <label className="text-sm font-semibold">
               อีเมล
@@ -88,12 +95,19 @@ export default async function UsersPage({
                 defaultValue="STAFF"
                 className="form-input mt-1.5"
               >
-                <option value="STAFF">พนักงาน</option>
-                <option value="DOCTOR">สัตวแพทย์</option>
-                <option value="OWNER">เจ้าของคลินิก</option>
+                {clinicRoles
+                  .filter(
+                    (role) => context.role === "OWNER" || role !== "OWNER",
+                  )
+                  .map((role) => (
+                    <option key={role} value={role}>
+                      {roleLabels[role]}
+                    </option>
+                  ))}
               </select>
             </label>
-            <button className="min-h-11 self-end rounded-xl bg-[#123c2f] px-4 font-bold text-white">
+            <PermissionChecklist options={permissionOptions} />
+            <button className="min-h-11 self-end rounded-xl bg-[#123c2f] px-4 font-bold text-white sm:col-span-2">
               ส่งคำเชิญ
             </button>
           </form>
@@ -114,49 +128,99 @@ export default async function UsersPage({
                     {roleLabels[user.role]} · {statusLabels[user.status]}
                   </p>
                 </div>
-                {user.userId !== context.userId && (
-                  <form
-                    action={manageTenantMembershipAction}
-                    className="grid gap-2 sm:grid-cols-[150px_170px_auto]"
-                  >
-                    <input
-                      type="hidden"
-                      name="membershipId"
-                      value={user.membershipId}
-                    />
-                    <select
-                      name="role"
-                      defaultValue={user.role}
-                      aria-label={`บทบาทของ ${user.displayName}`}
-                      className="form-input"
+                {user.userId !== context.userId &&
+                  !(context.role === "ADMIN" && user.role === "OWNER") && (
+                    <form
+                      action={manageTenantMembershipAction}
+                      className="grid gap-3 sm:min-w-[560px] sm:grid-cols-2"
                     >
-                      <option value="STAFF">พนักงาน</option>
-                      <option value="DOCTOR">สัตวแพทย์</option>
-                      <option value="OWNER">เจ้าของคลินิก</option>
-                    </select>
-                    <select
-                      name="status"
-                      defaultValue={
-                        user.status === "INVITED" ? "ACTIVE" : user.status
-                      }
-                      aria-label={`สถานะของ ${user.displayName}`}
-                      className="form-input"
-                    >
-                      <option value="ACTIVE">ใช้งาน</option>
-                      <option value="SUSPENDED">ระงับชั่วคราว</option>
-                      <option value="REVOKED">เพิกถอน</option>
-                    </select>
-                    <button className="min-h-11 rounded-xl border border-[#123c2f] px-4 font-bold">
-                      บันทึก
-                    </button>
-                  </form>
-                )}
+                      <input
+                        type="hidden"
+                        name="membershipId"
+                        value={user.membershipId}
+                      />
+                      <select
+                        name="role"
+                        defaultValue={user.role}
+                        aria-label={`บทบาทของ ${user.displayName}`}
+                        className="form-input"
+                      >
+                        {clinicRoles
+                          .filter(
+                            (role) =>
+                              context.role === "OWNER" || role !== "OWNER",
+                          )
+                          .map((role) => (
+                            <option key={role} value={role}>
+                              {roleLabels[role]}
+                            </option>
+                          ))}
+                      </select>
+                      <select
+                        name="status"
+                        defaultValue={
+                          user.status === "INVITED" ? "ACTIVE" : user.status
+                        }
+                        aria-label={`สถานะของ ${user.displayName}`}
+                        className="form-input"
+                      >
+                        <option value="ACTIVE">ใช้งาน</option>
+                        <option value="SUSPENDED">ระงับชั่วคราว</option>
+                        <option value="REVOKED">เพิกถอน</option>
+                      </select>
+                      {user.role !== "OWNER" && user.role !== "ADMIN" && (
+                        <PermissionChecklist
+                          options={permissionOptions}
+                          selected={user.allowedPermissions}
+                        />
+                      )}
+                      <button className="min-h-11 rounded-xl border border-[#123c2f] px-4 font-bold sm:col-span-2">
+                        บันทึก
+                      </button>
+                    </form>
+                  )}
               </div>
             </article>
           ))}
         </section>
       </div>
     </div>
+  );
+}
+
+function PermissionChecklist({
+  options,
+  selected = [],
+}: {
+  readonly options: Awaited<ReturnType<typeof listPermissionOptions>>;
+  readonly selected?: readonly string[];
+}) {
+  return (
+    <fieldset className="rounded-xl border border-emerald-900/10 p-3 sm:col-span-2">
+      <legend className="px-1 text-sm font-bold">สิทธิ์รายบุคคล</legend>
+      <p className="mb-3 text-xs text-slate-600">
+        OWNER และ ADMIN ได้สิทธิ์ทั้งหมดอัตโนมัติ
+        ส่วนบทบาทอื่นปรับได้ตามหน้าที่จริง
+      </p>
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        {options.map((option) => (
+          <label
+            key={option.code}
+            className="flex min-h-11 items-start gap-2 rounded-lg bg-[#f5f8f6] p-2 text-sm"
+            title={option.description}
+          >
+            <input
+              type="checkbox"
+              name="permissions"
+              value={option.code}
+              defaultChecked={selected.includes(option.code)}
+              className="mt-0.5 size-5 shrink-0"
+            />
+            <span>{option.label}</span>
+          </label>
+        ))}
+      </div>
+    </fieldset>
   );
 }
 
@@ -171,6 +235,10 @@ function userError(code: string): string {
       "ไม่อนุญาตให้เปลี่ยนสิทธิ์ของบัญชีตนเองจากหน้านี้",
     LAST_OWNER_REQUIRED: "ต้องมี OWNER ที่ใช้งานอย่างน้อยหนึ่งบัญชี",
     FORBIDDEN: "ไม่มีสิทธิ์ดำเนินการ",
+    ADMIN_CANNOT_MANAGE_OWNER:
+      "ADMIN ไม่สามารถเพิ่ม เปลี่ยนสิทธิ์ ระงับ หรือจัดการบัญชี OWNER ได้",
+    UNKNOWN_PERMISSION:
+      "พบสิทธิ์ที่ระบบไม่รู้จัก กรุณาโหลดหน้าใหม่แล้วลองอีกครั้ง",
     UNKNOWN: "ดำเนินการไม่สำเร็จ",
   };
   return messages[code] ?? messages.UNKNOWN!;

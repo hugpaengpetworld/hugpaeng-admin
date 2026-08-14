@@ -15,6 +15,7 @@ export default async function AdminLayout({
     <AdminShell
       displayName={context.displayName}
       role={context.role}
+      permissions={context.permissions}
       thaiName={context.thaiName}
       englishName={context.englishName}
       logoUrl={logoUrl}

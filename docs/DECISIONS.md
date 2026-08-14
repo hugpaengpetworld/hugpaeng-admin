@@ -191,3 +191,13 @@ Add future decisions with date, decision, superseded behavior, and reason. Never
 - Decision: do not copy development, rehearsal, or legacy customer, pet, booking, stay, payment, receipt, audit, Auth, or uploaded evidence records into Version 1 production.
 - Decision: `bmp-booking-dev` remains a staging project and must not be promoted into production. A later `LEGACY_IMPORT` requires a new explicit OWNER decision, mapping review, rehearsal, and reconciliation.
 - Reason: the OWNER chose to launch Version 1 with a clean database and avoid carrying experimental or legacy operational data into the production system.
+
+## 2026-08-14 — Six clinic roles, per-user capabilities, and patient HN
+
+- Decision: clinic roles are `OWNER`, `ADMIN`, `DOCTOR`, `STAFF`, `COUNTER`, and `ASSISTANT`.
+- Decision: OWNER and ADMIN receive every tenant capability. ADMIN may manage clinic users and permissions but must never create, promote, suspend, revoke, or otherwise manage an OWNER account; this restriction is enforced in PostgreSQL and server actions.
+- Decision: OWNER/ADMIN select explicit capabilities for non-owner users. Direct table, RPC, and private Storage access must enforce the same effective capabilities as the UI.
+- Decision: the central registry searches by normalized phone, owner name, pet name, or HN. Existing customers can select several existing pets and add another pet without re-entering customer data.
+- Decision: every pet receives a separate immutable tenant-scoped `HN-######`; HNs are not shared and are never reused.
+- Decision: Version 1 links registry identities to boarding and sterilization. Full EMR, IDEXX/device integration, IPD, treatment, inventory, POS/payroll, referrals, AI SOAP, and paperless clinical workflows remain future releases.
+- Reason: launch the reliable booking/sterilization product without blocking Version 1 on the full veterinary platform, while establishing identity and authorization foundations that future modules can safely reuse.

@@ -3,7 +3,7 @@
 ## Room and booking integrity
 
 - Two concurrent requests cannot allocate the same final room capacity.
-- OWNER can retire an unused room from cat/dog planning with a required reason; the row and historical references remain, its code is never reused, and an audit fact is written.
+- A user with `ROOM_INVENTORY_MANAGE` can retire an unused room from cat/dog planning with a required reason; the row and historical references remain, its code is never reused, and an audit fact is written.
 - STAFF/DOCTOR cannot retire inventory. Retirement is rejected for an open stay, an active `HOLD`/`RESERVED` allocation, a stale version, or an already retired room.
 - Pending approval consumes capacity.
 - Cat booking can select only CAT rooms; dog booking only DOG rooms.
@@ -91,6 +91,15 @@
 - Focus returns after modal close.
 - Status remains understandable without color.
 - Loading, empty, validation, success, conflict, and unauthorized states are present.
+
+## Patient registry and capabilities
+
+- Searching another tenant's registry fails through RLS and RPC even when a caller submits that tenant UUID directly.
+- Every newly created pet receives a different tenant-scoped HN, and updating an issued HN fails.
+- Concurrent new-customer requests using the same tenant/phone produce one registry customer.
+- A non-owner user's explicit deny blocks both the Next.js action and direct authenticated RPC/table/Storage access.
+- ADMIN can manage non-owner roles and capabilities but cannot create, promote, suspend, revoke, or edit OWNER.
+- One customer can select multiple existing pets for a workflow and can add another pet without duplicating customer data.
 
 ## Release checks
 

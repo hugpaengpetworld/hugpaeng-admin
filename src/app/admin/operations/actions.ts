@@ -3,7 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { requireTenantContext } from "@/data/auth/tenant-context";
+import {
+  requirePermission,
+  requireTenantContext,
+} from "@/data/auth/tenant-context";
 import {
   type ChargeInput,
   parseBahtToSatang,
@@ -29,7 +32,8 @@ const paymentMethods = [
 ] as const;
 
 export async function checkInBookingAction(formData: FormData): Promise<void> {
-  await requireTenantContext();
+  const context = await requireTenantContext();
+  requirePermission(context, "CHECK_IN");
   const bookingId = textField(formData, "bookingId");
   const roomId = textField(formData, "roomId");
   const notes = textField(formData, "notes", true);
@@ -64,7 +68,8 @@ export async function checkInBookingAction(formData: FormData): Promise<void> {
 export async function checkInRoomBookingAction(
   formData: FormData,
 ): Promise<void> {
-  await requireTenantContext();
+  const context = await requireTenantContext();
+  requirePermission(context, "CHECK_IN");
   const returnTo = safeRoomReturnPath(formData.get("returnTo"));
   const bookingId = textField(formData, "bookingId", false, returnTo);
   const roomId = textField(formData, "roomId", false, returnTo);
@@ -101,7 +106,8 @@ export async function checkInRoomBookingAction(
 }
 
 export async function checkOutBookingAction(formData: FormData): Promise<void> {
-  await requireTenantContext();
+  const context = await requireTenantContext();
+  requirePermission(context, "CHECK_OUT");
   const returnTo = safeRoomReturnPath(formData.get("returnTo"));
   const bookingId = textField(formData, "bookingId", false, returnTo);
   const notes = textField(formData, "notes", true, returnTo);

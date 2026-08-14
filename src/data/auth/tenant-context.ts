@@ -5,8 +5,9 @@ import { cache } from "react";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { PromptPayTargetType } from "@/integrations/promptpay/payload";
+import type { ClinicRole, TenantPermission } from "@/domain/auth/permissions";
 
-export type ClinicRole = "OWNER" | "DOCTOR" | "STAFF";
+export type { ClinicRole, TenantPermission } from "@/domain/auth/permissions";
 
 export interface TenantContext {
   readonly userId: string;
@@ -16,6 +17,7 @@ export interface TenantContext {
   readonly thaiName: string;
   readonly englishName: string;
   readonly role: ClinicRole;
+  readonly permissions: readonly TenantPermission[];
   readonly logoStoragePath: string | null;
   readonly clinicAddress: string | null;
   readonly contactPhone: string | null;
@@ -85,30 +87,40 @@ export const requireTenantContext = cache(async (): Promise<TenantContext> => {
   const membership = membershipData as MembershipRow | null;
   if (membershipError || !membership) redirect("/unauthorized");
 
-  const [tenantResult, profileResult, settingsResult] = await Promise.all([
-    supabase
-      .from("tenants")
-      .select("id, slug, thai_name, english_name")
-      .eq("id", membership.tenant_id)
-      .single(),
-    supabase
-      .from("profiles")
-      .select("display_name")
-      .eq("user_id", userId)
-      .single(),
-    supabase
-      .from("tenant_settings")
-      .select(
-        "logo_storage_path, clinic_address, contact_phone, receipt_tax_enabled, receipt_tax_heading, tax_id, branch_number, promptpay_display_value, promptpay_qr_enabled, promptpay_target_type, promptpay_target_value, promptpay_payee_name, bank_name, bank_account_name, bank_account_number_masked",
-      )
-      .eq("tenant_id", membership.tenant_id)
-      .maybeSingle(),
-  ]);
+  const [tenantResult, profileResult, settingsResult, permissionsResult] =
+    await Promise.all([
+      supabase
+        .from("tenants")
+        .select("id, slug, thai_name, english_name")
+        .eq("id", membership.tenant_id)
+        .single(),
+      supabase
+        .from("profiles")
+        .select("display_name")
+        .eq("user_id", userId)
+        .single(),
+      supabase
+        .from("tenant_settings")
+        .select(
+          "logo_storage_path, clinic_address, contact_phone, receipt_tax_enabled, receipt_tax_heading, tax_id, branch_number, promptpay_display_value, promptpay_qr_enabled, promptpay_target_type, promptpay_target_value, promptpay_payee_name, bank_name, bank_account_name, bank_account_number_masked",
+        )
+        .eq("tenant_id", membership.tenant_id)
+        .maybeSingle(),
+      supabase.rpc("get_my_tenant_permissions", {
+        p_tenant_id: membership.tenant_id,
+      }),
+    ]);
 
   const tenant = tenantResult.data as TenantRow | null;
   const profile = profileResult.data as ProfileRow | null;
   const settings = settingsResult.data as SettingsRow | null;
-  if (tenantResult.error || !tenant || profileResult.error || !profile) {
+  if (
+    tenantResult.error ||
+    !tenant ||
+    profileResult.error ||
+    !profile ||
+    permissionsResult.error
+  ) {
     redirect("/unauthorized");
   }
 
@@ -120,6 +132,7 @@ export const requireTenantContext = cache(async (): Promise<TenantContext> => {
     thaiName: tenant.thai_name,
     englishName: tenant.english_name,
     role: membership.role,
+    permissions: (permissionsResult.data ?? []) as TenantPermission[],
     logoStoragePath: settings?.logo_storage_path ?? null,
     clinicAddress: settings?.clinic_address ?? null,
     contactPhone: settings?.contact_phone ?? null,
@@ -138,6 +151,15 @@ export const requireTenantContext = cache(async (): Promise<TenantContext> => {
   };
 });
 
-export function requireOwner(context: TenantContext): void {
-  if (context.role !== "OWNER") redirect("/unauthorized");
+export function requireUserManager(context: TenantContext): void {
+  if (context.role !== "OWNER" && context.role !== "ADMIN") {
+    redirect("/unauthorized");
+  }
+}
+
+export function requirePermission(
+  context: TenantContext,
+  permission: TenantPermission,
+): void {
+  if (!context.permissions.includes(permission)) redirect("/unauthorized");
 }

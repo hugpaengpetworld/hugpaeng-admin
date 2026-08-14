@@ -9,16 +9,41 @@ export function SterilizationAppointmentForm({
   activeCount,
   holidayReason,
   canOverrideHoliday,
+  registrySelection,
 }: {
   readonly defaultDate: string;
   readonly activeCount: number;
   readonly holidayReason: string | null;
   readonly canOverrideHoliday: boolean;
+  readonly registrySelection?: {
+    readonly customerId: string;
+    readonly customerName: string;
+    readonly phone: string;
+    readonly petId: string;
+    readonly petName: string;
+    readonly species: "CAT" | "DOG";
+    readonly sex: "MALE" | "FEMALE" | null;
+    readonly breed: string | null;
+    readonly weightKg: number | null;
+    readonly ageText: string | null;
+  };
 }) {
-  const [species, setSpecies] = useState("CAT");
+  const [species, setSpecies] = useState<"CAT" | "DOG" | "OTHER">(
+    registrySelection?.species ?? "CAT",
+  );
   const overCapacity = activeCount >= 4;
   return (
     <form action={createSterilizationAppointmentAction} className="space-y-6">
+      {registrySelection && (
+        <>
+          <input
+            type="hidden"
+            name="customerId"
+            value={registrySelection.customerId}
+          />
+          <input type="hidden" name="petId" value={registrySelection.petId} />
+        </>
+      )}
       {(overCapacity || holidayReason) && (
         <div
           role="alert"
@@ -82,6 +107,8 @@ export function SterilizationAppointmentForm({
             name="customerName"
             required
             maxLength={120}
+            defaultValue={registrySelection?.customerName}
+            readOnly={Boolean(registrySelection)}
             className="form-input mt-1.5"
           />
         </label>
@@ -92,6 +119,8 @@ export function SterilizationAppointmentForm({
             type="tel"
             required
             maxLength={20}
+            defaultValue={registrySelection?.phone}
+            readOnly={Boolean(registrySelection)}
             className="form-input mt-1.5"
           />
         </label>
@@ -101,6 +130,8 @@ export function SterilizationAppointmentForm({
             name="petName"
             required
             maxLength={100}
+            defaultValue={registrySelection?.petName}
+            readOnly={Boolean(registrySelection)}
             className="form-input mt-1.5"
           />
         </label>
@@ -109,13 +140,23 @@ export function SterilizationAppointmentForm({
           <select
             name="species"
             value={species}
-            onChange={(event) => setSpecies(event.target.value)}
+            onChange={(event) =>
+              setSpecies(event.target.value as "CAT" | "DOG" | "OTHER")
+            }
             className="form-input mt-1.5"
+            disabled={Boolean(registrySelection)}
           >
             <option value="CAT">แมว</option>
             <option value="DOG">สุนัข</option>
             <option value="OTHER">อื่น ๆ</option>
           </select>
+          {registrySelection && (
+            <input
+              type="hidden"
+              name="species"
+              value={registrySelection.species}
+            />
+          )}
         </label>
         {species === "OTHER" && (
           <label className="text-sm font-semibold sm:col-span-2">
@@ -134,7 +175,8 @@ export function SterilizationAppointmentForm({
           <select
             name="sex"
             required
-            defaultValue=""
+            defaultValue={registrySelection?.sex ?? ""}
+            disabled={Boolean(registrySelection)}
             className="form-input mt-1.5"
           >
             <option value="" disabled>
@@ -143,10 +185,18 @@ export function SterilizationAppointmentForm({
             <option value="MALE">ผู้</option>
             <option value="FEMALE">เมีย</option>
           </select>
+          {registrySelection?.sex && (
+            <input type="hidden" name="sex" value={registrySelection.sex} />
+          )}
         </label>
         <label className="text-sm font-semibold">
           สายพันธุ์ (ไม่บังคับ)
-          <input name="breed" maxLength={100} className="form-input mt-1.5" />
+          <input
+            name="breed"
+            maxLength={100}
+            defaultValue={registrySelection?.breed ?? ""}
+            className="form-input mt-1.5"
+          />
         </label>
         <label className="text-sm font-semibold">
           น้ำหนัก กก. (ไม่บังคับ)
@@ -157,6 +207,7 @@ export function SterilizationAppointmentForm({
             max="999.99"
             step="0.01"
             className="form-input mt-1.5"
+            defaultValue={registrySelection?.weightKg ?? ""}
           />
         </label>
         <label className="text-sm font-semibold">
@@ -166,6 +217,7 @@ export function SterilizationAppointmentForm({
             maxLength={60}
             placeholder="เช่น 8 เดือน หรือ 2 ปี"
             className="form-input mt-1.5"
+            defaultValue={registrySelection?.ageText ?? ""}
           />
         </label>
         <label className="text-sm font-semibold sm:col-span-2">

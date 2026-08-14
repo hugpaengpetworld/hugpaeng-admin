@@ -10,7 +10,10 @@ import {
   listBookingGroups,
   listPendingReschedules,
 } from "@/data/bookings/list-bookings";
-import { requireTenantContext } from "@/data/auth/tenant-context";
+import {
+  requirePermission,
+  requireTenantContext,
+} from "@/data/auth/tenant-context";
 import { formatDisplayDate } from "@/domain/shared/date";
 import { BOOKING_STATUS_LABELS, CHANNEL_LABELS } from "@/domain/booking/labels";
 import type { BookingStatus } from "@/domain/booking/status";
@@ -32,7 +35,8 @@ export default async function BookingsPage({
     searchParams,
     requireTenantContext(),
   ]);
-  const canVerifyDeposit = context.role === "OWNER" || context.role === "STAFF";
+  requirePermission(context, "BOOKINGS_READ");
+  const canVerifyDeposit = context.permissions.includes("PAYMENTS_VERIFY");
   const search = query.q?.trim().toLocaleLowerCase("th") ?? "";
   const visibleGroups = groups.filter((group) => {
     const matchingUnits = group.units.filter(

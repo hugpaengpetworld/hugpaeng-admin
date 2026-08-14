@@ -2,7 +2,10 @@
 
 import { z } from "zod";
 
-import { requireTenantContext } from "@/data/auth/tenant-context";
+import {
+  requirePermission,
+  requireTenantContext,
+} from "@/data/auth/tenant-context";
 import { listOperationalBookings } from "@/data/operations/list-operations";
 import {
   calculateSettlement,
@@ -53,6 +56,7 @@ export async function generatePromptPayQuoteAction(
   if (!request.success) return { status: "INVALID_INPUT" };
 
   const context = await requireTenantContext();
+  requirePermission(context, "PAYMENTS_COLLECT");
   if (
     !context.promptpayQrEnabled ||
     !context.promptpayTargetType ||

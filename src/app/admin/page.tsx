@@ -2,17 +2,9 @@ import Link from "next/link";
 
 import { logoutAction } from "@/app/(auth)/actions";
 import { Icon, type IconName } from "@/components/ui/icon";
-import {
-  requireTenantContext,
-  type ClinicRole,
-} from "@/data/auth/tenant-context";
+import { requireTenantContext } from "@/data/auth/tenant-context";
+import { roleLabels, type TenantPermission } from "@/domain/auth/permissions";
 import { getSignedLogoUrl } from "@/data/settings/logo";
-
-const roleLabels: Record<ClinicRole, string> = {
-  OWNER: "เจ้าของคลินิก",
-  DOCTOR: "สัตวแพทย์",
-  STAFF: "พนักงาน",
-};
 
 export default async function AdminHomePage({
   searchParams,
@@ -72,7 +64,7 @@ export default async function AdminHomePage({
               aria-label="เมนูระบบหลังบ้าน"
               className="hidden flex-1 items-center justify-center gap-1 xl:flex"
             >
-              <TopNavigation role={context.role} />
+              <TopNavigation permissions={context.permissions} />
             </nav>
 
             <details className="group relative xl:hidden">
@@ -82,7 +74,7 @@ export default async function AdminHomePage({
               </summary>
               <div className="absolute top-[calc(100%+0.65rem)] right-0 w-[min(88vw,340px)] rounded-2xl border border-[#76573b]/15 bg-[#fffaf1] p-3 shadow-2xl">
                 <div className="grid gap-1">
-                  <MobileNavigation role={context.role} />
+                  <MobileNavigation permissions={context.permissions} />
                 </div>
               </div>
             </details>
@@ -162,18 +154,24 @@ function ResponsiveBackground() {
   );
 }
 
-function TopNavigation({ role }: { readonly role: ClinicRole }) {
+function TopNavigation({
+  permissions,
+}: {
+  readonly permissions: readonly TenantPermission[];
+}) {
+  const canOpenBookings = permissions.includes("BOOKINGS_READ");
+  const canOpenSettings = permissions.includes("SETTINGS_MANAGE");
   return (
     <>
       <TopItem icon="pos" label="ระบบ POS" future />
       <TopItem
         icon="calendar"
         label="ฝากเลี้ยง–ทำหมัน"
-        href="/admin/bookings"
+        href={canOpenBookings ? "/admin/bookings" : undefined}
       />
       <TopItem icon="employee" label="สำหรับพนักงาน" future />
       <TopItem icon="stethoscope" label="สำหรับสัตวแพทย์" future />
-      {role === "OWNER" && (
+      {canOpenSettings && (
         <TopItem
           icon="settings"
           label="การตั้งค่าสำหรับผู้ดูแลระบบ"
@@ -184,18 +182,24 @@ function TopNavigation({ role }: { readonly role: ClinicRole }) {
   );
 }
 
-function MobileNavigation({ role }: { readonly role: ClinicRole }) {
+function MobileNavigation({
+  permissions,
+}: {
+  readonly permissions: readonly TenantPermission[];
+}) {
+  const canOpenBookings = permissions.includes("BOOKINGS_READ");
+  const canOpenSettings = permissions.includes("SETTINGS_MANAGE");
   return (
     <>
       <MobileItem icon="pos" label="ระบบ POS" future />
       <MobileItem
         icon="calendar"
         label="ฝากเลี้ยง–ทำหมัน"
-        href="/admin/bookings"
+        href={canOpenBookings ? "/admin/bookings" : undefined}
       />
       <MobileItem icon="employee" label="สำหรับพนักงาน" future />
       <MobileItem icon="stethoscope" label="สำหรับสัตวแพทย์" future />
-      {role === "OWNER" && (
+      {canOpenSettings && (
         <MobileItem
           icon="settings"
           label="การตั้งค่าสำหรับผู้ดูแลระบบ"

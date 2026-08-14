@@ -21,6 +21,8 @@
     "test:integration": "vitest run tests/integration --testTimeout=20000 --hookTimeout=30000",
     "test:integration:staging": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/test-staging-database.ps1",
     "test-fixtures:audit": "tsx scripts/audit-test-fixtures.ts",
+    "gate3:reconcile": "tsx scripts/gate3-reconcile.ts",
+    "gate3:auth-smoke": "tsx scripts/gate3-auth-smoke.ts",
     "db:start": "supabase start",
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",
@@ -58,5 +60,8 @@
     "typescript": "6.0.3",
     "vitest": "4.1.10",
     "wrangler": "^4.122.0"
+  },
+  "overrides": {
+    "nanoid": "3.3.18"
   }
 }

@@ -13,7 +13,7 @@
 
 - `/` is the customer-facing website and must not display the admin navigation.
 - `/admin/login` is the canonical clinic-user login. It identifies the screen as the back-office system, offers password recovery, and links back to the customer website.
-- `/admin` is the authenticated back-office Home. It greets the user, shows their clinic role, provides primary booking actions, and groups daily modules separately from OWNER-only administration.
+- `/admin` is the authenticated back-office Home. It greets the user, shows their clinic role, provides primary booking actions, and displays modules according to server-derived capabilities.
 - `/login` is compatibility-only and redirects to `/admin/login` while preserving supported status/error parameters.
 - Authentication and role checks remain server-side; the visual split between customer and admin routes is not an authorization control.
 
@@ -39,7 +39,7 @@
 - ผู้ใช้งาน
 - ตั้งค่า
 
-หน้าห้องพักแมวและสุนัขแสดงปุ่ม `+ เพิ่มห้องพัก` และ `− ลบห้องพัก` เฉพาะ `OWNER` การเพิ่มใช้เลขห้องถัดไปโดยอัตโนมัติ ส่วนการลบต้องเลือกห้อง ระบุเหตุผล และยืนยัน โดยอธิบายว่าระบบเก็บประวัติเดิมและไม่อนุญาตห้องที่กำลังเข้าพักหรือมีรายการจองค้างอยู่ หน้าปฏิทินทำหมันใช้ตารางรายเดือนวันอาทิตย์–เสาร์ แสดงจำนวนคิวต่อความจุ รายการสัตว์ วันหยุด คิวเต็ม และ overbook โดยไม่ใช้สีเพียงอย่างเดียวในการสื่อสถานะ
+หน้าห้องพักแมวและสุนัขแสดงปุ่ม `+ เพิ่มห้องพัก` และ `− ลบห้องพัก` เฉพาะผู้ใช้ที่มี `ROOM_INVENTORY_MANAGE` การเพิ่มใช้เลขห้องถัดไปโดยอัตโนมัติ ส่วนการลบต้องเลือกห้อง ระบุเหตุผล และยืนยัน โดยอธิบายว่าระบบเก็บประวัติเดิมและไม่อนุญาตห้องที่กำลังเข้าพักหรือมีรายการจองค้างอยู่ หน้าปฏิทินทำหมันใช้ตารางรายเดือนวันอาทิตย์–เสาร์ แสดงจำนวนคิวต่อความจุ รายการสัตว์ วันหยุด คิวเต็ม และ overbook โดยไม่ใช้สีเพียงอย่างเดียวในการสื่อสถานะ
 
 Only show permitted menu items, while server authorization remains mandatory.
 
@@ -48,12 +48,12 @@ Only show permitted menu items, while server authorization remains mandatory.
 - `/admin` is the authenticated SaaS back-office portal, not the operational booking dashboard. Its visible brand name and logo come from the current tenant settings; the product shell must not hard-code a clinic or business identity.
 - The exact `/admin` route uses a full-screen responsive background and a two-row header without the booking sidebar. The tenant logo and business names remain in the first row; system navigation and the signed-in account move to the second row. Entering a working module such as `/admin/bookings`, `/admin/rooms/*`, or `/admin/sterilization` restores that module's sidebar and operational shell.
 - Use the approved background art for smartphone, tablet, and PC through responsive image sources; keep important actions readable over the artwork and preserve the dog/cat area rather than covering it with dense dashboard cards.
-- The portal menu has `ระบบ POS`, `ฝากเลี้ยง–ทำหมัน`, `สำหรับพนักงาน`, `สำหรับสัตวแพทย์`, and an OWNER-only `การตั้งค่าสำหรับผู้ดูแลระบบ`.
+- The portal menu has `ระบบ POS`, `ฝากเลี้ยง–ทำหมัน`, `สำหรับพนักงาน`, `สำหรับสัตวแพทย์`, and capability-protected `การตั้งค่าสำหรับผู้ดูแลระบบ`.
 - Do not duplicate the system menu as a second card grid in the portal hero. The second header row is the authoritative system switcher.
 - `สำหรับสัตวแพทย์` is the umbrella label for future blood-analyzer results, referral documents, and other veterinarian-only clinical tools.
 - Clinic identity, contact, logo, tax identity, PromptPay, user invitations, memberships, and future cross-module settings live only under `การตั้งค่าสำหรับผู้ดูแลระบบ`. The boarding/sterilization sidebar must not duplicate Settings or Users entries.
 - OWNER administration pages expose three consistent controls in order: `กลับหน้าหลักระบบหลังบ้าน`, `เพิ่มผู้ใช้งาน`, and `การตั้งค่าสำหรับผู้ดูแลระบบ`. `/admin/users` and `/admin/settings` use a standalone administration layout rather than the boarding/sterilization sidebar.
-- `ฝากเลี้ยง–ทำหมัน` and the OWNER-only system settings are active in the current release. Future modules display `เร็ว ๆ นี้` and do not link to placeholder pages.
+- `ฝากเลี้ยง–ทำหมัน` and capability-protected system settings are active in the current release. Future modules display `เร็ว ๆ นี้` and do not link to placeholder pages.
 - The signed-in account menu contains the session action only; OWNER configuration and user management are reached through the authoritative settings tab. Server membership checks and PostgreSQL RLS remain authoritative for every linked route.
 
 ## Operational check-in/out views
@@ -144,6 +144,13 @@ Status colors:
 - Hide tax-information heading, tax identification number, and branch number by default.
 - Render the snapshotted tax section only when an OWNER enabled it and supplied the configured values in Settings.
 - A multi-room group is printed as one receipt with room/pet-specific lines and one group deposit deduction.
+
+## Customer and patient registry
+
+- `/admin/customers` is the central registry entry. Search supports phone, owner name, pet name, and HN without placing customer data in the URL.
+- Results show one customer with their pets and separate HNs. Staff may select several existing pets, add another pet, start a boarding booking, or start sterilization for one eligible pet.
+- New-customer creation collects customer contact data once and renders repeatable pet sections. Success, duplicate-phone, validation, empty, forbidden, and retryable error states are explicit.
+- Registry controls and links are rendered only for effective capabilities, while server/RLS/RPC/Storage remain authoritative.
 
 ## Accessibility
 

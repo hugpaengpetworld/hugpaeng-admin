@@ -3,7 +3,10 @@ import { AdminSettingsNavigation } from "@/components/admin/admin-settings-navig
 import { ClinicMark } from "@/components/branding/clinic-mark";
 import { SubmitSettingsButton } from "@/components/settings/submit-settings-button";
 import { Icon } from "@/components/ui/icon";
-import { requireOwner, requireTenantContext } from "@/data/auth/tenant-context";
+import {
+  requirePermission,
+  requireTenantContext,
+} from "@/data/auth/tenant-context";
 import { getSignedLogoUrl } from "@/data/settings/logo";
 
 const errorMessages: Record<string, string> = {
@@ -19,7 +22,7 @@ export default async function SettingsPage({
   readonly searchParams: Promise<{ success?: string; error?: string }>;
 }) {
   const context = await requireTenantContext();
-  requireOwner(context);
+  requirePermission(context, "SETTINGS_MANAGE");
   const query = await searchParams;
   const logoUrl = await getSignedLogoUrl(context.logoStoragePath);
   const error = query.error
@@ -33,7 +36,7 @@ export default async function SettingsPage({
         <header>
           <AdminSettingsNavigation active="settings" />
           <p className="text-sm font-semibold text-[#2d6a50]">
-            เจ้าของคลินิกเท่านั้น
+            ผู้มีสิทธิ์ตั้งค่าระบบเท่านั้น
           </p>
           <h1 className="mt-1 flex items-center gap-3 text-2xl font-bold sm:text-3xl">
             <Icon name="settings" className="size-8" />

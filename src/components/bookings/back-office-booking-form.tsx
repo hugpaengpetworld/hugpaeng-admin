@@ -15,6 +15,7 @@ interface RoomOption {
 }
 
 interface PetDraft {
+  readonly petId?: string;
   readonly name: string;
   readonly weightKg: string;
   readonly fleaTickTreated?: boolean;
@@ -31,11 +32,12 @@ interface UnitDraft {
   readonly pets: readonly PetDraft[];
 }
 
-const newPet = (): PetDraft => ({
+const newPet = (preset?: Partial<PetDraft>): PetDraft => ({
   name: "",
   weightKg: "",
   fleaTickProduct: "",
   fleaTickTreatedOn: "",
+  ...preset,
 });
 
 const newUnit = (species: Species = "CAT", roomId = ""): UnitDraft => ({
@@ -62,12 +64,24 @@ export function BackOfficeBookingForm({
   defaultSpecies = "CAT",
   defaultRoomId = "",
   allowDirectCheckIn = false,
+  registryCustomer,
 }: {
   readonly errorMessage?: string;
   readonly defaultCheckInDate?: string;
   readonly defaultSpecies?: Species;
   readonly defaultRoomId?: string;
   readonly allowDirectCheckIn?: boolean;
+  readonly registryCustomer?: {
+    readonly id: string;
+    readonly name: string;
+    readonly phone: string;
+    readonly pets: readonly {
+      readonly id: string;
+      readonly name: string;
+      readonly species: Species;
+      readonly weightKg: number | null;
+    }[];
+  };
 }) {
   const today = useMemo(() => todayInBangkok(), []);
   const initialCheckInDate = defaultCheckInDate ?? today;
@@ -75,16 +89,45 @@ export function BackOfficeBookingForm({
   const [checkOutDate, setCheckOutDate] = useState(
     addDays(initialCheckInDate, 1),
   );
-  const [customerName, setCustomerName] = useState("");
-  const [customerPhone, setCustomerPhone] = useState("");
+  const [customerName, setCustomerName] = useState(
+    registryCustomer?.name ?? "",
+  );
+  const [customerPhone, setCustomerPhone] = useState(
+    registryCustomer?.phone ?? "",
+  );
   const [customerNotes, setCustomerNotes] = useState("");
   const [channel, setChannel] = useState<(typeof channels)[number][0]>("PHONE");
   const [lineUserId, setLineUserId] = useState("");
   const [depositBaht, setDepositBaht] = useState("0.00");
   const [idempotencyKey] = useState(() => crypto.randomUUID());
-  const [units, setUnits] = useState<readonly UnitDraft[]>([
-    newUnit(defaultSpecies, defaultRoomId),
-  ]);
+  const [units, setUnits] = useState<readonly UnitDraft[]>(() => {
+    if (!registryCustomer?.pets.length) {
+      return [newUnit(defaultSpecies, defaultRoomId)];
+    }
+    const grouped: UnitDraft[] = [];
+    for (const species of ["CAT", "DOG"] as const) {
+      const speciesPets = registryCustomer.pets.filter(
+        (pet) => pet.species === species,
+      );
+      for (let index = 0; index < speciesPets.length; index += 2) {
+        const unit = newUnit(
+          species,
+          grouped.length === 0 ? defaultRoomId : "",
+        );
+        grouped.push({
+          ...unit,
+          pets: speciesPets.slice(index, index + 2).map((pet) =>
+            newPet({
+              petId: pet.id,
+              name: pet.name,
+              weightKg: pet.weightKg?.toString() ?? "",
+            }),
+          ),
+        });
+      }
+    }
+    return grouped;
+  });
   const [rooms, setRooms] = useState<Record<Species, readonly RoomOption[]>>({
     CAT: [],
     DOG: [],
@@ -125,6 +168,7 @@ export function BackOfficeBookingForm({
 
   const selectedRoomIds = new Set(units.map(({ roomId }) => roomId));
   const payload = JSON.stringify({
+    customerId: registryCustomer?.id,
     customerName,
     customerPhone,
     customerNotes,

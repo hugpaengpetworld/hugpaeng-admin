@@ -16,16 +16,19 @@
 | `tenants` | clinic identity, slug, status, timezone, currency |
 | `tenant_settings` | branding, clinic address/phone, optional owner-enabled receipt tax identity, and payment settings including enabled flag, validated PromptPay target type/value, and expected payee name; typed columns and constraints |
 | `profiles` | Supabase user profile; no password hashes in application tables |
-| `tenant_memberships` | user, tenant, clinic role, active state |
+| `tenant_memberships` | user, tenant, clinic role (`OWNER`, `ADMIN`, `DOCTOR`, `STAFF`, `COUNTER`, `ASSISTANT`), active state |
+| `permission_catalog` / `tenant_role_permission_defaults` | stable capability catalog and baseline permissions for clinic roles |
+| `tenant_membership_permission_overrides` | explicit per-user allow/deny facts selected by OWNER/ADMIN; tenant-scoped and mutation-RPC only |
 | `platform_roles` | platform owner/support role assignments |
 | `support_access_grants` | tenant, support user, scope, reason, approver, start, expiry, revoke |
-| `customers` | owner name, normalized phone, contact channels |
-| `pets` | customer, name, species/custom species, sex, breed, age, weight |
+| `customers` | owner name, normalized phone, email/address, archive marker and contact channels |
+| `pets` | customer, immutable tenant-scoped HN, name, species, sex, breed, birth/age, weight, markings, microchip, neutered and archive facts |
+| `tenant_patient_sequences` | transactional per-tenant HN sequence; HNs are issued per pet and never rewritten |
 | `pet_health_profiles` | vaccination evidence, flea/tick facts, and restricted health review notes |
 | `booking_groups` | one customer request, channel, service type, shared dates/contact/status |
 | `bookings` | one room unit in a group, human booking code, audited quoted nightly rate and calculated lodging total in satang, status/payment/health facts |
 | `booking_pets` | booking-to-pet assignment and order |
-| `room_inventory` | CATxx/DOGxx, species, operational state, notes, optional retirement timestamp/OWNER/reason; initial seed is expandable and removable through audited OWNER-only RPCs without deleting history |
+| `room_inventory` | CATxx/DOGxx, species, operational state, notes, optional retirement timestamp/actor/reason; initial seed is expandable and removable through audited capability-guarded RPCs without deleting history |
 | `room_allocations` | planned room/date hold/reservation and release facts |
 | `room_stays` | actual check-in/out, room, booking, notes, deposit, actors |
 | `payments` | type, amount, status, evidence, verification/refund facts; LINE deposits belong to `booking_group_id` so a multi-room group has one required deposit |
@@ -45,7 +48,7 @@
 
 Owner data is entered once in `booking_groups`. Each requested room is a `bookings` row. Animals are assigned to each unit through `booking_pets`. This supports multi-room requests without comma-separated names or duplicated owner input.
 
-Operational pet identity is separated from `pet_health_profiles` so staff can work with names/species without receiving broad health-document access. Owner and doctor access is the default; narrower staff access must be granted through an explicitly approved server-side permission in a later phase.
+Operational pet identity is separated from `pet_health_profiles`. Registry, health, booking, room, payment, receipt, settings, user, and audit capabilities are evaluated independently. `OWNER` and `ADMIN` receive all tenant capabilities; non-owner roles receive role defaults plus explicit per-membership overrides.
 
 LINE deposit, checkout settlement, refund, and active receipt uniqueness are scoped by `booking_group_id`. `receipt_items.booking_id` keeps each room unit traceable inside the combined group receipt.
 

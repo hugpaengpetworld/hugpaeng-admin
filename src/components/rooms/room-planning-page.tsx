@@ -114,7 +114,7 @@ export async function RoomPlanningPage({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          {context.role === "OWNER" && (
+          {context.permissions.includes("ROOM_INVENTORY_MANAGE") && (
             <>
               <form action={createRoomAction}>
                 <input type="hidden" name="species" value={species} />

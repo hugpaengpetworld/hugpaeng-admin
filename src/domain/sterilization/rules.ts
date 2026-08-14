@@ -39,6 +39,8 @@ export const STERILIZATION_ERROR_MESSAGES: Readonly<Record<string, string>> = {
   INVALID_STATUS_TRANSITION: "ไม่สามารถเปลี่ยนไปยังสถานะที่เลือกได้",
   APPOINTMENT_DATE_IN_PAST: "ไม่สามารถสร้างนัดย้อนหลังได้",
   FORBIDDEN: "ไม่มีสิทธิ์ดำเนินการ",
+  PET_SEX_REQUIRED:
+    "ทะเบียนสัตว์ยังไม่มีข้อมูลเพศ กรุณาเพิ่มข้อมูลก่อนสร้างนัดทำหมัน",
   UNKNOWN: "ดำเนินการไม่สำเร็จ กรุณาลองใหม่",
 };
 
@@ -66,6 +68,8 @@ export function nextSterilizationStatuses(
 
 export const sterilizationAppointmentSchema = z
   .object({
+    customerId: z.uuid().optional(),
+    petId: z.uuid().optional(),
     appointmentDate: z.string().refine(isIsoDate),
     appointmentTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
     customerName: z.string().trim().min(1).max(120),
@@ -88,6 +92,13 @@ export const sterilizationAppointmentSchema = z
     holidayOverride: z.boolean(),
   })
   .superRefine((value, context) => {
+    if (Boolean(value.customerId) !== Boolean(value.petId)) {
+      context.addIssue({
+        code: "custom",
+        path: ["petId"],
+        message: "REGISTRY_SELECTION_INCOMPLETE",
+      });
+    }
     if (value.species === "OTHER" && !value.customSpecies) {
       context.addIssue({
         code: "custom",

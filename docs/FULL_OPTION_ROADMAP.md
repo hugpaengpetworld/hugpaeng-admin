@@ -20,7 +20,7 @@ The long-term product may combine these modules under the same authenticated she
 4. Business overview covering revenue, income, expenses, costs, profit/loss, and customer counts.
 5. Operational and management reports with role-controlled Excel export.
 6. A veterinarian workspace named `สำหรับสัตวแพทย์` for future blood-analyzer integration, referral documents, and approved clinical tools.
-7. An OWNER-only administration settings workspace for tenant identity, contacts, logo, payment, receipt, and future cross-module configuration.
+7. A capability-protected administration settings workspace for tenant identity, contacts, logo, payment, receipt, and future cross-module configuration. OWNER and ADMIN receive this capability by default.
 
 These modules must share tenant identity, clinic membership, audit facts, and consistent customer/pet identity without copying authentication or financial facts between systems. Adding attendance, POS, accounting, payroll, or medical-record scope requires a separate approved phase, data model, security review, and acceptance criteria.
 

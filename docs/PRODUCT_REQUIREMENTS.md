@@ -73,6 +73,14 @@
 - Critical admin list interactions should feel immediate; target cached/list reads below two seconds under normal clinic load, with visible loading feedback for slower operations.
 - Audit facts are append-only.
 
+## Version 1 registry foundation
+
+- A tenant-scoped customer/patient registry searches by phone, owner name, pet name, or exact HN.
+- Selecting one customer permits selecting several of that customer's existing pets and adding another pet.
+- New customer creation requires at least one pet and may create up to ten pets transactionally.
+- Each pet has a separate immutable tenant HN; boarding and sterilization store registry references instead of requiring repeated customer entry.
+- Six clinic roles use OWNER/ADMIN-configurable capabilities; ADMIN has all tenant capabilities except managing OWNER accounts.
+
 ## Out of current parity scope
 
 - Full POS.

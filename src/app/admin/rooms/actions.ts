@@ -4,7 +4,10 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
-import { requireTenantContext } from "@/data/auth/tenant-context";
+import {
+  requirePermission,
+  requireTenantContext,
+} from "@/data/auth/tenant-context";
 import { isIsoDate } from "@/domain/shared/date";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -55,6 +58,7 @@ const retireRoomSafeErrorCodes = [
 
 export async function createRoomAction(formData: FormData): Promise<void> {
   const context = await requireTenantContext();
+  requirePermission(context, "ROOM_INVENTORY_MANAGE");
   const input = createRoomSchema.safeParse({
     species: formData.get("species"),
     planDate: formData.get("planDate"),
@@ -63,14 +67,6 @@ export async function createRoomAction(formData: FormData): Promise<void> {
 
   const basePath =
     input.data.species === "CAT" ? "/admin/rooms/cats" : "/admin/rooms/dogs";
-  if (context.role !== "OWNER") {
-    const query = new URLSearchParams({
-      date: input.data.planDate,
-      error: "FORBIDDEN",
-    });
-    redirect(`${basePath}?${query.toString()}`);
-  }
-
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.rpc("create_next_room", {
     p_tenant_id: context.tenantId,
@@ -99,6 +95,7 @@ export async function createRoomAction(formData: FormData): Promise<void> {
 
 export async function retireRoomAction(formData: FormData): Promise<void> {
   const context = await requireTenantContext();
+  requirePermission(context, "ROOM_INVENTORY_MANAGE");
   const input = retireRoomSchema.safeParse({
     roomSelection: formData.get("roomSelection"),
     reason: formData.get("reason"),
@@ -109,14 +106,6 @@ export async function retireRoomAction(formData: FormData): Promise<void> {
 
   const basePath =
     input.data.species === "CAT" ? "/admin/rooms/cats" : "/admin/rooms/dogs";
-  if (context.role !== "OWNER") {
-    const query = new URLSearchParams({
-      date: input.data.planDate,
-      error: "FORBIDDEN",
-    });
-    redirect(`${basePath}?${query.toString()}`);
-  }
-
   const [roomId = "", expectedVersionText = ""] =
     input.data.roomSelection.split("|");
   const supabase = await createSupabaseServerClient();
@@ -147,7 +136,8 @@ export async function retireRoomAction(formData: FormData): Promise<void> {
 }
 
 export async function changeRoomStateAction(formData: FormData): Promise<void> {
-  await requireTenantContext();
+  const context = await requireTenantContext();
+  requirePermission(context, "ROOM_STATE_MANAGE");
   const input = roomStateSchema.safeParse({
     roomId: formData.get("roomId"),
     newStatus: formData.get("newStatus"),

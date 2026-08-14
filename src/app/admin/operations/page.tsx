@@ -1,5 +1,8 @@
 import { OperationsWorkspace } from "@/components/operations/operations-workspace";
-import { requireTenantContext } from "@/data/auth/tenant-context";
+import {
+  requirePermission,
+  requireTenantContext,
+} from "@/data/auth/tenant-context";
 import { listOperationalBookings } from "@/data/operations/list-operations";
 
 const successMessages: Readonly<Record<string, string>> = {
@@ -36,6 +39,7 @@ export default async function OperationsPage({
     requireTenantContext(),
     searchParams,
   ]);
+  requirePermission(context, "BOOKINGS_READ");
   const bookings = await listOperationalBookings(context.tenantId);
 
   return (
