@@ -78,7 +78,26 @@ jobs:
       - run: supabase start
       - run: supabase db reset
       - run: supabase db lint --local
-      - run: supabase test db
+      - name: Run supabase test db
+        shell: bash
+        run: |
+          set +e
+          supabase test db 2>&1 | tee supabase-test-db.log
+          status=${PIPESTATUS[0]}
+          if [ "$status" -ne 0 ]; then
+            annotation=$(tail -n 120 supabase-test-db.log)
+            annotation=${annotation//'%'/'%25'}
+            annotation=${annotation//$'\r'/'%0D'}
+            annotation=${annotation//$'\n'/'%0A'}
+            echo "::error title=Supabase pgTAP failure::$annotation"
+            {
+              echo "### Supabase pgTAP failure"
+              echo '```text'
+              tail -n 160 supabase-test-db.log
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+          exit "$status"
       - run: npm run test:integration
         env:
           TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
