@@ -1,14 +1,14 @@
 # Version 1 Release Checklist
 
-Last reviewed: 2026-08-14 (Asia/Bangkok)
+Last reviewed: 2026-08-15 (Asia/Bangkok)
 
 Status meanings: `OPEN` still requires work, `BLOCKED` requires an OWNER decision or external access, and `CLOSED` has repeatable evidence that meets the release criterion.
 
 | Order | Release gate | Status | Evidence required to close |
 | --- | --- | --- | --- |
 | 1 | Data strategy | CLOSED | OWNER selected `CLEAN_SEED`; the decision and clean-production boundaries are recorded in `docs/DECISIONS.md` and `docs/MIGRATION_PLAN.md`. |
-| 2 | Staging database and automated integrity | CLOSED | The linked CLEAN staging database was rebuilt from empty through migration `202608140005`; schema lint passed, all 7 integration files and 39 tests passed, and the post-test fixture audit found no Auth users, memberships, customers, pets, booking groups, or receipts. |
-| 3 | Backup and restore drill | OPEN | An isolated restore target passes schema, data/financial reconciliation, Auth smoke tests, and critical workflows; evidence is stored outside source control. |
+| 2 | Staging database and automated integrity | CLOSED | The linked CLEAN staging database was rebuilt from empty and migration history matches through `202608150001`; schema lint, pgTAP, all 7 integration files, and all 39 tests passed. The post-test fixture audit found no Auth users, memberships, customers, pets, booking groups, or receipts. |
+| 3 | Backup and restore drill | CLOSED | GitHub Actions restore drill [`31830796846`](https://github.com/hugpaengpetworld/hugpaeng-admin/actions/runs/31830796846) restored commit `a0203d9` from hard-locked CLEAN staging into the isolated restore target, reconciled schema and application data, passed Auth smoke tests and all 39 database integration tests, cleaned fixtures, and removed ephemeral backup files. |
 | 4 | Application and Cloudflare build | OPEN | Format, lint, strict TypeScript, unit tests, Next.js build, and OpenNext Cloudflare Worker build pass from the exact release source. |
 | 5 | Staging deployment and smoke tests | OPEN | Auth, public booking, room planning, check-in/out, PromptPay settlement, receipt print, cron, and outbox are verified on a non-production URL. |
 | 6 | Production configuration and security | BLOCKED | OWNER-approved domain, Supabase Auth redirects, Cloudflare secrets, LINE decision/credentials, retention, finance permissions, support policy, and monitoring are configured outside Git. |
@@ -37,7 +37,9 @@ Status meanings: `OPEN` still requires work, `BLOCKED` requires an OWNER decisio
 - OpenNext Cloudflare build passed in the current Windows workspace and previously passed in Linux CI for commit `53b4d9f`. Gate 4 remains open until the exact release candidate is identified after the Gate 3 restore drill and the checks are repeated for that source.
 - Gate 2 was reopened after approval of the six-role capability model and central patient registry, then closed again on 2026-08-14 after the authorized CLEAN staging rebuild, expanded 39-test integration run, and zero-fixture audit all passed.
 - Gate 3 preparation on 2026-08-14 confirmed that `supabase db dump --linked` can authenticate to CLEAN staging but requires Docker to run `pg_dump` on this Windows host. Docker and native PostgreSQL client tools are unavailable, no valid dump was produced, and the three zero-byte output files were removed. The restore drill must use an isolated Supabase target and either a Linux CI runner with protected database secrets or approved PostgreSQL client tooling; it must never restore over the verified CLEAN staging source.
-- The OWNER created isolated Supabase restore target `bmp-booking-restore-drill` (`svgmzjphmdqfeptalxhe`) in Singapore. The manual Linux workflow is hard-locked to that target and source `wnnxdcxuxupmnplkegkt`; Gate 3 remains open until protected GitHub secrets are configured and the workflow passes backup checksums, full schema/table reconciliation, Auth smoke, 39 database integration tests, and post-test cleanup.
+- The OWNER created isolated Supabase restore target `bmp-booking-restore-drill` (`svgmzjphmdqfeptalxhe`) in Singapore. The manual Linux workflow is hard-locked to that target and source `wnnxdcxuxupmnplkegkt`; protected passwords and API keys are stored only as GitHub Actions repository secrets.
+- Security regression coverage identified that trigger function `public.assign_patient_hn()` was executable by exposed roles. Migration `202608150001` revoked that privilege from `public`, `anon`, and `authenticated`; GitHub Actions quality run [`31830248965`](https://github.com/hugpaengpetworld/hugpaeng-admin/actions/runs/31830248965) then passed both application and database jobs for commit `a0203d9`, and the migration was applied to CLEAN staging with matching local/remote history.
+- Gate 3 closed on 2026-08-15: restore drill [`31830796846`](https://github.com/hugpaengpetworld/hugpaeng-admin/actions/runs/31830796846) completed successfully for commit `a0203d9` in 7 minutes 42 seconds. The workflow created checksum evidence in the ephemeral runner without uploading database artifacts, reset only the hard-locked isolated target, restored the `public` application schema and data, reconciled every public table and financial totals, passed Auth create/login/delete smoke tests, passed all 7 integration files and all 39 tests, cleaned test fixtures, and securely removed temporary backup files. The GitHub Node.js 20 action-runtime deprecation annotation is non-blocking workflow-maintenance debt; it did not skip or fail any release assertion.
 
 ## Owner decisions still required
 
