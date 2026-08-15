@@ -152,6 +152,17 @@ describeWithDatabase("patient registry and tenant capabilities", () => {
           ${tenantId}, 'พลอย', '0810000012', null, null
         )
       `;
+      await transaction`
+        select public.create_registry_customer(
+          ${tenantId}, 'หมอปอย', '0810000013', null, null
+        )
+      `;
+      await transaction`
+        select public.create_registry_customer_with_pets(
+          ${tenantId}, 'เจ้าของสัตว์', '0810000014', null, null,
+          ${sql.json([{ name: "น้องปอย", species: "DOG" }])}::jsonb
+        )
+      `;
     });
 
     const results = await asUser(
@@ -165,6 +176,8 @@ describeWithDatabase("patient registry and tenant capabilities", () => {
     expect(results.map(({ customer_name }) => customer_name)).toEqual([
       "ปอย",
       "ปอยใจ",
+      "หมอปอย",
+      "เจ้าของสัตว์",
     ]);
   });
 

@@ -232,3 +232,10 @@ Add future decisions with date, decision, superseded behavior, and reason. Never
 - Decision: the current query stays visible, matching text is emphasized in each result, stale responses are not rendered for a newer query, and an empty result names the exact query that was not found.
 - Decision: after `ใช้ข้อมูลที่เลือก`, the create form scrolls to the populated owner/pet section and shows the selected registry identity so the action has immediate visible feedback.
 - Reason: make registry reuse fast and predictable while preventing unrelated records from obscuring the intended patient and preventing duplicate data entry.
+
+## 2026-08-16 — Literal contains matching for patient names
+
+- Decision: owner and pet name searches match the literal query at any position in the name. Results remain ranked as exact match, prefix match, then contains match; phone and HN keep their exact/prefix behavior.
+- Decision: wildcard characters typed by a user are treated as ordinary name characters rather than SQL pattern operators.
+- Supersedes: limiting owner and pet name lookup to prefix-only matches.
+- Reason: a query such as `ปอย` must find `หมอปอย`, while exact and prefix matches still remain easier to find at the top and unrelated names are excluded.

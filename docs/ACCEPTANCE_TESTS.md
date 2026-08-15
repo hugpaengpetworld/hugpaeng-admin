@@ -107,7 +107,7 @@
 - ADMIN can manage non-owner roles and capabilities but cannot create, promote, suspend, revoke, or edit OWNER.
 - One customer can select multiple existing pets for a workflow and can add another pet without duplicating customer data.
 - Typing at least two characters automatically refreshes results after a short debounce without putting the query in the URL; a later query never displays an older response.
-- Exact owner/pet/HN/phone matches appear before prefix matches. Searching `ปอย` returns `ปอย` before `ปอย...` and does not return `พลอย` merely because the normalized phone fragment is empty.
+- Exact owner/pet/HN/phone matches appear before prefix matches, followed by literal contains matches for owner and pet names. Searching `ปอย` returns `ปอย`, then `ปอย...`, then names such as `หมอปอย`, and does not return `พลอย` merely because the normalized phone fragment is empty.
 - Every visible owner, phone, pet, or HN match emphasizes the matching query. An empty result states `ไม่พบข้อมูลที่ตรงกับ “<คำค้น>”` while preserving the query in the input.
 - Selecting pets and pressing `ใช้ข้อมูลที่เลือก` populates the target form, moves the viewport to the populated owner/pet section, and gives visible applied-state feedback.
 
