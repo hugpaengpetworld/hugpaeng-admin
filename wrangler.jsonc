@@ -14,4 +14,29 @@
   "triggers": {
     "crons": ["* * * * *"],
   },
+  "env": {
+    "staging": {
+      "name": "bmp-booking-staging",
+      "workers_dev": true,
+      "preview_urls": false,
+      "vars": {
+        "APP_TIMEZONE": "Asia/Bangkok",
+        "APP_CURRENCY": "THB",
+        "DEFAULT_TENANT_SLUG": "baan-mhor-poy",
+      },
+      "secrets": {
+        "required": [
+          "NEXT_PUBLIC_SUPABASE_URL",
+          "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+          "NEXT_PUBLIC_APP_URL",
+          "SUPABASE_SERVICE_ROLE_KEY",
+          "CRON_SHARED_SECRET",
+          "RATE_LIMIT_HASH_SECRET",
+        ],
+      },
+      "triggers": {
+        "crons": ["* * * * *"],
+      },
+    },
+  },
 }

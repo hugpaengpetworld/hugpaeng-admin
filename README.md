@@ -173,6 +173,16 @@ npm run preview:cloudflare
 
 การ deploy ต้องตั้ง secrets ผ่าน Cloudflare/Wrangler ภายนอก source control แล้วจึงใช้ `npm run deploy:cloudflare` ยังไม่ทำ production deployment หรือผูกโดเมน เพราะต้องยืนยันกลยุทธ์ข้อมูลจริง, LINE production credentials, retention, backup/restore และ cutover sign-off ก่อน
 
+สำหรับ environment staging ที่อนุมัติแล้ว ให้ใช้คำสั่งซึ่งล็อกเป้าหมายไว้กับ Worker และ Supabase CLEAN staging โดยเฉพาะ:
+
+```powershell
+npm.cmd run deploy:cloudflare:staging -- -AppUrl https://bmp-booking-staging.hugpaeng-petworld.workers.dev
+npm.cmd run gate5:smoke
+npm.cmd run gate5:smoke -- --verify-scheduled-cron
+```
+
+คำสั่ง `gate5:smoke` หลักสร้างข้อมูล Auth/booking/check-in/payment/receipt สังเคราะห์ จึงรันได้เฉพาะเมื่ออนุมัติให้ล้าง staging กลับเป็น CLEAN_SEED หลังทดสอบแล้วเท่านั้น ห้ามใช้กับ production ส่วนโหมด `--verify-scheduled-cron` สร้างและลบเฉพาะ outbox event สังเคราะห์หนึ่งรายการเพื่อยืนยัน scheduled handler จริง
+
 `custom-worker.ts` เพิ่ม scheduled handler ให้ OpenNext worker และ `wrangler.jsonc` เรียกทุกหนึ่งนาทีเพื่อหมดเวลามัดจำและส่ง outbox โดย route ภายในตรวจ `CRON_SHARED_SECRET` ซ้ำเสมอ สามารถทดสอบ preview cron ด้วย endpoint ของ Wrangler `/cdn-cgi/handler/scheduled` หลังตั้ง `.dev.vars`
 
 ## Staging database release test บน Windows
