@@ -1,14 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import {
   addRegistryPetAction,
   createRegistryCustomerAction,
-  searchPatientRegistryAction,
-  type RegistrySearchState,
 } from "@/app/admin/customers/actions";
+import { SearchHighlight } from "@/components/customers/search-highlight";
+import { usePatientRegistrySearch } from "@/components/customers/use-patient-registry-search";
 
 interface PetDraft {
   readonly key: string;
@@ -18,11 +18,6 @@ interface PetDraft {
   readonly breed: string;
   readonly weightKg: string;
 }
-
-const initialSearchState: RegistrySearchState = {
-  status: "idle",
-  results: [],
-};
 
 const newPet = (): PetDraft => ({
   key: crypto.randomUUID(),
@@ -40,10 +35,16 @@ export function RegistryWorkspace({
   readonly canWriteCustomers: boolean;
   readonly canWritePets: boolean;
 }) {
-  const [state, searchAction, pending] = useActionState(
-    searchPatientRegistryAction,
-    initialSearchState,
-  );
+  const {
+    cleanQuery,
+    formRef,
+    markSubmitted,
+    pending,
+    query,
+    searchAction,
+    setQuery,
+    visibleState,
+  } = usePatientRegistrySearch();
   const [selectedPetIds, setSelectedPetIds] = useState<readonly string[]>([]);
   const [pets, setPets] = useState<readonly PetDraft[]>([newPet()]);
   const petPayload = useMemo(
@@ -77,7 +78,9 @@ export function RegistryWorkspace({
           POST และไม่ปรากฏใน URL
         </p>
         <form
+          ref={formRef}
           action={searchAction}
+          onSubmit={markSubmitted}
           className="mt-4 flex flex-col gap-3 sm:flex-row"
         >
           <label className="flex-1 text-sm font-semibold">
@@ -88,6 +91,11 @@ export function RegistryWorkspace({
               minLength={2}
               maxLength={120}
               autoComplete="off"
+              value={query}
+              onChange={(event) => {
+                setQuery(event.target.value);
+                setSelectedPetIds([]);
+              }}
               className="form-input mt-1.5"
               placeholder="เช่น 092..., สมชาย, ชาไทย หรือ HN-000123"
             />
@@ -99,24 +107,32 @@ export function RegistryWorkspace({
             {pending ? "กำลังค้นหา…" : "ค้นหา"}
           </button>
         </form>
-        {state.message && (
+        {pending && cleanQuery.length >= 2 && (
+          <p className="mt-3 text-sm text-slate-600" aria-live="polite">
+            กำลังค้นหา “{cleanQuery}”…
+          </p>
+        )}
+        {visibleState.message && (
           <p role="alert" className="mt-3 text-sm font-semibold text-red-700">
-            {state.message}
+            {visibleState.message}
           </p>
         )}
       </section>
 
-      {state.status === "success" && state.results.length === 0 && (
-        <div className="rounded-2xl border border-dashed border-emerald-900/20 bg-white p-8 text-center">
-          <p className="font-bold">ไม่พบลูกค้าเดิม</p>
-          <p className="mt-1 text-sm text-slate-600">
-            ตรวจสอบคำค้นอีกครั้ง หรือสร้างลูกค้าและสัตว์เลี้ยงใหม่ด้านล่าง
-          </p>
-        </div>
-      )}
+      {visibleState.status === "success" &&
+        visibleState.results.length === 0 && (
+          <div className="rounded-2xl border border-dashed border-emerald-900/20 bg-white p-8 text-center">
+            <p className="font-bold">
+              ไม่พบข้อมูลที่ตรงกับ “{visibleState.query}”
+            </p>
+            <p className="mt-1 text-sm text-slate-600">
+              ตรวจสอบคำค้นอีกครั้ง หรือสร้างลูกค้าและสัตว์เลี้ยงใหม่ด้านล่าง
+            </p>
+          </div>
+        )}
 
       <section className="space-y-4" aria-live="polite">
-        {state.results.map((customer) => {
+        {visibleState.results.map((customer) => {
           const selectedForCustomer = selectedPetIds.filter((id) =>
             customer.pets.some((pet) => pet.id === id),
           );
@@ -131,8 +147,19 @@ export function RegistryWorkspace({
             >
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                  <h3 className="text-lg font-bold">{customer.name}</h3>
-                  <p className="text-sm text-slate-600">โทร {customer.phone}</p>
+                  <h3 className="text-lg font-bold">
+                    <SearchHighlight
+                      text={customer.name}
+                      query={visibleState.query}
+                    />
+                  </h3>
+                  <p className="text-sm text-slate-600">
+                    โทร{" "}
+                    <SearchHighlight
+                      text={customer.phone}
+                      query={visibleState.query}
+                    />
+                  </p>
                   {customer.email && (
                     <p className="text-sm text-slate-600">{customer.email}</p>
                   )}
@@ -172,10 +199,19 @@ export function RegistryWorkspace({
                       className="mt-1 size-5"
                     />
                     <span>
-                      <strong>{pet.name}</strong>
+                      <strong>
+                        <SearchHighlight
+                          text={pet.name}
+                          query={visibleState.query}
+                        />
+                      </strong>
                       <br />
                       <span className="text-xs text-slate-600">
-                        {pet.hn} · {pet.species === "CAT" ? "แมว" : "สุนัข"}
+                        <SearchHighlight
+                          text={pet.hn}
+                          query={visibleState.query}
+                        />{" "}
+                        · {pet.species === "CAT" ? "แมว" : "สุนัข"}
                         {pet.breed ? ` · ${pet.breed}` : ""}
                       </span>
                     </span>

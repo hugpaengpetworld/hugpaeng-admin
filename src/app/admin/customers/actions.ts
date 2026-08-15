@@ -42,6 +42,7 @@ const addPetSchema = petSchema.extend({ customerId: z.uuid() });
 
 export interface RegistrySearchState {
   readonly status: "idle" | "success" | "error";
+  readonly query: string;
   readonly message?: string;
   readonly results: readonly RegistryCustomer[];
 }
@@ -59,6 +60,7 @@ export async function searchPatientRegistryAction(
   if (!query.success) {
     return {
       status: "error",
+      query: String(formData.get("query") ?? "").trim(),
       message: "กรุณากรอกอย่างน้อย 2 ตัวอักษร",
       results: [],
     };
@@ -66,11 +68,13 @@ export async function searchPatientRegistryAction(
   try {
     return {
       status: "success",
+      query: query.data,
       results: await searchPatientRegistry(query.data),
     };
   } catch {
     return {
       status: "error",
+      query: query.data,
       message: "ค้นหาทะเบียนไม่สำเร็จ กรุณาลองใหม่",
       results: [],
     };

@@ -1,16 +1,10 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useState } from "react";
 
-import {
-  searchPatientRegistryAction,
-  type RegistrySearchState,
-} from "@/app/admin/customers/actions";
-
-const initialState: RegistrySearchState = {
-  status: "idle",
-  results: [],
-};
+import type { RegistrySearchState } from "@/app/admin/customers/actions";
+import { SearchHighlight } from "@/components/customers/search-highlight";
+import { usePatientRegistrySearch } from "@/components/customers/use-patient-registry-search";
 
 type RegistryCustomer = RegistrySearchState["results"][number];
 type RegistryPet = RegistryCustomer["pets"][number];
@@ -27,11 +21,18 @@ export function PatientRegistryLookup({
   readonly mode: "BOARDING" | "STERILIZATION";
   readonly onSelect: (selection: PatientRegistrySelection) => void;
 }) {
-  const [state, searchAction, pending] = useActionState(
-    searchPatientRegistryAction,
-    initialState,
-  );
+  const {
+    cleanQuery,
+    formRef,
+    markSubmitted,
+    pending,
+    query,
+    searchAction,
+    setQuery,
+    visibleState,
+  } = usePatientRegistrySearch();
   const [selectedPetIds, setSelectedPetIds] = useState<readonly string[]>([]);
+  const [appliedSelectionKey, setAppliedSelectionKey] = useState("");
 
   function selectPet(
     customerPetIds: readonly string[],
@@ -49,6 +50,19 @@ export function PatientRegistryLookup({
     });
   }
 
+  function applySelection(
+    customer: RegistryCustomer,
+    pets: readonly RegistryPet[],
+  ): void {
+    onSelect({ customer, pets });
+    setAppliedSelectionKey(
+      `${customer.id}:${pets
+        .map(({ id }) => id)
+        .sort()
+        .join(",")}`,
+    );
+  }
+
   return (
     <section className="rounded-2xl border border-emerald-900/10 bg-emerald-50/60 p-5 shadow-sm sm:p-6">
       <h2 className="text-lg font-bold">ค้นหาลูกค้าและสัตว์เลี้ยงเดิม</h2>
@@ -57,8 +71,13 @@ export function PatientRegistryLookup({
         เพื่อเลือกข้อมูลเดิมโดยไม่ต้องกรอกซ้ำ
       </p>
       <form
+        ref={formRef}
         action={searchAction}
-        onSubmit={() => setSelectedPetIds([])}
+        onSubmit={() => {
+          markSubmitted();
+          setSelectedPetIds([]);
+          setAppliedSelectionKey("");
+        }}
         className="mt-4 flex flex-col gap-3 sm:flex-row"
       >
         <label className="flex-1 text-sm font-semibold">
@@ -69,6 +88,12 @@ export function PatientRegistryLookup({
             minLength={2}
             maxLength={120}
             autoComplete="off"
+            value={query}
+            onChange={(event) => {
+              setQuery(event.target.value);
+              setSelectedPetIds([]);
+              setAppliedSelectionKey("");
+            }}
             className="form-input mt-1.5 bg-white"
             placeholder="เช่น 092..., สมชาย, ชาไทย หรือ HN-000123"
           />
@@ -81,23 +106,38 @@ export function PatientRegistryLookup({
         </button>
       </form>
 
-      {state.message && (
+      {pending && cleanQuery.length >= 2 && (
+        <p className="mt-3 text-sm text-slate-600" aria-live="polite">
+          กำลังค้นหา “{cleanQuery}”…
+        </p>
+      )}
+      {visibleState.message && (
         <p role="alert" className="mt-3 text-sm font-semibold text-red-700">
-          {state.message}
+          {visibleState.message}
         </p>
       )}
-      {state.status === "success" && state.results.length === 0 && (
-        <p className="mt-4 rounded-xl border border-dashed border-emerald-900/20 bg-white p-4 text-sm">
-          ไม่พบข้อมูลเดิม
-          สามารถกรอกข้อมูลลูกค้าและสัตว์เลี้ยงใหม่ในแบบฟอร์มด้านล่าง
-        </p>
-      )}
+      {visibleState.status === "success" &&
+        visibleState.results.length === 0 && (
+          <p className="mt-4 rounded-xl border border-dashed border-emerald-900/20 bg-white p-4 text-sm">
+            <strong>ไม่พบข้อมูลที่ตรงกับ “{visibleState.query}”</strong>
+            <span className="mt-1 block text-slate-600">
+              ตรวจสอบคำค้นอีกครั้ง
+              หรือกรอกข้อมูลลูกค้าและสัตว์เลี้ยงใหม่ในแบบฟอร์มด้านล่าง
+            </span>
+          </p>
+        )}
 
       <div className="mt-4 space-y-3" aria-live="polite">
-        {state.results.map((customer) => {
+        {visibleState.results.map((customer) => {
           const selectedPets = customer.pets.filter((pet) =>
             selectedPetIds.includes(pet.id),
           );
+          const selectionKey = `${customer.id}:${selectedPets
+            .map(({ id }) => id)
+            .sort()
+            .join(",")}`;
+          const isApplied =
+            selectedPets.length > 0 && appliedSelectionKey === selectionKey;
           return (
             <article
               key={customer.id}
@@ -105,16 +145,27 @@ export function PatientRegistryLookup({
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <h3 className="font-bold">{customer.name}</h3>
-                  <p className="text-sm text-slate-600">โทร {customer.phone}</p>
+                  <h3 className="font-bold">
+                    <SearchHighlight
+                      text={customer.name}
+                      query={visibleState.query}
+                    />
+                  </h3>
+                  <p className="text-sm text-slate-600">
+                    โทร{" "}
+                    <SearchHighlight
+                      text={customer.phone}
+                      query={visibleState.query}
+                    />
+                  </p>
                 </div>
                 <button
                   type="button"
                   disabled={selectedPets.length === 0}
-                  onClick={() => onSelect({ customer, pets: selectedPets })}
+                  onClick={() => applySelection(customer, selectedPets)}
                   className="min-h-10 rounded-xl bg-[#2d7a5d] px-4 text-sm font-bold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
                 >
-                  ใช้ข้อมูลที่เลือก
+                  {isApplied ? "ใช้ข้อมูลแล้ว ✓" : "ใช้ข้อมูลที่เลือก"}
                 </button>
               </div>
               {customer.pets.length === 0 ? (
@@ -151,9 +202,18 @@ export function PatientRegistryLookup({
                         className="mt-0.5 size-5"
                       />
                       <span className="text-sm">
-                        <strong>{pet.name}</strong>
+                        <strong>
+                          <SearchHighlight
+                            text={pet.name}
+                            query={visibleState.query}
+                          />
+                        </strong>
                         <span className="block text-slate-600">
-                          {pet.hn} · {pet.species === "CAT" ? "แมว" : "สุนัข"}
+                          <SearchHighlight
+                            text={pet.hn}
+                            query={visibleState.query}
+                          />{" "}
+                          · {pet.species === "CAT" ? "แมว" : "สุนัข"}
                         </span>
                       </span>
                     </label>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { createSterilizationAppointmentAction } from "@/app/admin/sterilization/actions";
 import {
@@ -40,6 +40,7 @@ export function SterilizationAppointmentForm({
   const [species, setSpecies] = useState<"CAT" | "DOG" | "OTHER">(
     registrySelection?.species ?? "CAT",
   );
+  const ownerPetSectionRef = useRef<HTMLFieldSetElement>(null);
   const overCapacity = activeCount >= 4;
 
   function applyRegistrySelection(selection: PatientRegistrySelection): void {
@@ -59,6 +60,12 @@ export function SterilizationAppointmentForm({
     };
     setActiveRegistrySelection(nextSelection);
     setSpecies(nextSelection.species);
+    window.requestAnimationFrame(() => {
+      ownerPetSectionRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
   }
 
   function clearRegistrySelection(): void {
@@ -143,8 +150,9 @@ export function SterilizationAppointmentForm({
         </fieldset>
 
         <fieldset
+          ref={ownerPetSectionRef}
           key={activeRegistrySelection?.petId ?? "new-patient"}
-          className="grid gap-4 rounded-2xl border border-emerald-900/10 bg-white p-5 sm:grid-cols-2"
+          className="grid scroll-mt-4 gap-4 rounded-2xl border border-emerald-900/10 bg-white p-5 sm:grid-cols-2"
         >
           <legend className="px-2 font-bold">เจ้าของและสัตว์</legend>
           {activeRegistrySelection && (

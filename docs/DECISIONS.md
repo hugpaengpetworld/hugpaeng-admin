@@ -224,3 +224,11 @@ Add future decisions with date, decision, superseded behavior, and reason. Never
 - Decision: actionable room cards, sterilization day cards, and appointment rows display the pointer cursor and open with one click, Enter, or Space. Double-click is not part of any workflow.
 - Decision: the existing Version 1 direct-check-in database function does not yet accept registry-linked identities. A registry-linked booking therefore follows create request → room-card check-in, and the UI hides the unsupported direct action. Newly entered customers retain the existing atomic direct-check-in flow.
 - Reason: reduce duplicate customer/pet entry immediately without bypassing tenant authorization or weakening the current transactional booking and check-in guarantees.
+
+## 2026-08-15 — Immediate and relevance-ranked patient search
+
+- Decision: patient-registry lookup begins automatically after a short 200 ms typing pause once at least two characters are present. The explicit search button and Enter submission remain available for keyboard and assistive-technology users.
+- Decision: exact owner, pet, HN, and phone matches rank ahead of prefix matches. A name-only query must never become an empty normalized-phone prefix, and therefore must not match every customer phone.
+- Decision: the current query stays visible, matching text is emphasized in each result, stale responses are not rendered for a newer query, and an empty result names the exact query that was not found.
+- Decision: after `ใช้ข้อมูลที่เลือก`, the create form scrolls to the populated owner/pet section and shows the selected registry identity so the action has immediate visible feedback.
+- Reason: make registry reuse fast and predictable while preventing unrelated records from obscuring the intended patient and preventing duplicate data entry.

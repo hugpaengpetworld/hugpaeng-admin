@@ -135,6 +135,39 @@ describeWithDatabase("patient registry and tenant capabilities", () => {
     expect(stored?.count).toBe(1);
   });
 
+  it("ranks an exact Thai name first without matching every phone", async () => {
+    await asUser(ownerId, async (transaction) => {
+      await transaction`
+        select public.create_registry_customer(
+          ${tenantId}, 'ปอย', '0810000010', null, null
+        )
+      `;
+      await transaction`
+        select public.create_registry_customer(
+          ${tenantId}, 'ปอยใจ', '0810000011', null, null
+        )
+      `;
+      await transaction`
+        select public.create_registry_customer(
+          ${tenantId}, 'พลอย', '0810000012', null, null
+        )
+      `;
+    });
+
+    const results = await asUser(
+      ownerId,
+      (transaction) => transaction<{ customer_name: string }[]>`
+        select customer_name
+        from public.search_patient_registry(${tenantId}, 'ปอย')
+      `,
+    );
+
+    expect(results.map(({ customer_name }) => customer_name)).toEqual([
+      "ปอย",
+      "ปอยใจ",
+    ]);
+  });
+
   it("blocks cross-tenant registry search", async () => {
     await expect(
       asUser(

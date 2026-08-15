@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { createBackOfficeBookingAction } from "@/app/admin/bookings/actions";
 import { BookingSubmitButton } from "@/components/bookings/booking-submit-button";
@@ -155,6 +155,7 @@ export function BackOfficeBookingForm({
   const [roomState, setRoomState] = useState<"idle" | "loading" | "error">(
     "idle",
   );
+  const customerDetailsRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     if (!checkInDate || !checkOutDate || checkInDate >= checkOutDate) return;
@@ -250,6 +251,12 @@ export function BackOfficeBookingForm({
     setCustomerName(customer.name);
     setCustomerPhone(customer.phone);
     setUnits(buildRegistryUnits(customer, defaultSpecies, defaultRoomId));
+    window.requestAnimationFrame(() => {
+      customerDetailsRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
   }
 
   function clearRegistrySelection(): void {
@@ -276,7 +283,10 @@ export function BackOfficeBookingForm({
           </div>
         )}
 
-        <section className="rounded-2xl border border-emerald-900/10 bg-white p-5 shadow-sm sm:p-6">
+        <section
+          ref={customerDetailsRef}
+          className="scroll-mt-4 rounded-2xl border border-emerald-900/10 bg-white p-5 shadow-sm sm:p-6"
+        >
           <h2 className="text-lg font-bold">ข้อมูลเจ้าของและช่วงเข้าพัก</h2>
           {activeRegistryCustomer && (
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm">

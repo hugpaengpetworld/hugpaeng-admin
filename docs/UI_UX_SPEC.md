@@ -97,6 +97,7 @@ The first two tabs include:
 - A pet-name badge inside a booked room is a separate keyboard-accessible action. It opens a quick-detail modal with the booking, owner, phone, recorded pet facts, stay dates, payment state, and notes without triggering the room-card action.
 - Optional facts that were not collected for a boarding pet display `ยังไม่ได้ระบุ`; the UI must not infer sex, breed, or health information.
 - The room-card booking form begins with the central patient-registry search. Staff can search by phone, owner name, pet name, or HN, choose several active pets belonging to one customer, and reuse the existing customer/pet IDs instead of creating duplicates. New-customer entry remains available when no match is found.
+- Registry search starts after a 200 ms typing pause at two or more characters, keeps the typed query visible, ranks exact matches before prefixes, emphasizes matched text, suppresses stale responses, and identifies the searched text in the no-result state. Applying a selection scrolls to the populated owner section and confirms the applied state.
 - The room-card booking form shows an editable THB nightly-rate field for each room, prefilled from the one-/two-animal standard. It has adjacent `สร้างคำขอจอง` and `เช็คอินทันที` actions. The direct action is available only in the room-card context; the general booking-list form keeps the review path.
 - In the current Version 1 transaction boundary, a registry-linked room booking is created as a request first and is then checked in from the room card. `เช็คอินทันที` remains available for a newly entered customer; it must not be shown when the selected registry path is not supported atomically by the database function.
 - When direct check-in uses LINE, show the single booking-group deposit input and explain the 500 THB minimum. Do not present or calculate a deposit per room.
@@ -123,6 +124,7 @@ Status colors:
 - Every actionable day card and animal row shows the pointer cursor. One click opens the create form or the animal detail respectively; double-click must never be required.
 - Clicking the remaining area of a calendar day opens the back-office sterilization form with that date preselected. Clicking an animal row opens a quick-detail modal instead and shows the recorded owner, phone, channel, pet identity, species, sex, breed, weight, age, vaccination, appointment state, and notes.
 - The sterilization create form begins with the central patient-registry search. Staff can search by phone, owner name, pet name, or HN, select one existing pet, and reuse the existing customer/pet IDs; the form still permits new-customer entry when no match exists.
+- Sterilization registry lookup follows the same automatic ranked-search, match-emphasis, stale-response, no-result, and applied-selection feedback behavior as boarding and the central registry.
 - Overbook action displays explicit warning and records acknowledgement.
 
 ## Forms and dates
