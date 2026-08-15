@@ -4,8 +4,9 @@ import process from "node:process";
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
-if (existsSync(".env.local")) {
-  process.loadEnvFile(".env.local");
+const environmentFile = process.env.APP_ENV_FILE ?? ".env.local";
+if (existsSync(environmentFile)) {
+  process.loadEnvFile(environmentFile);
 }
 
 const argumentsSchema = z.object({

@@ -150,14 +150,14 @@ export function RoomPlanningGrid({
           return (
             <article
               key={room.room_id}
-              className={`relative min-h-44 overflow-hidden rounded-2xl border-2 p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${statusStyles[room.display_status]}`}
+              className={`relative min-h-44 cursor-pointer overflow-hidden rounded-2xl border-2 p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${statusStyles[room.display_status]}`}
             >
               <button
                 type="button"
                 onClick={() =>
                   startsBooking ? setBookingRoom(room) : setSelectedRoom(room)
                 }
-                className="absolute inset-0 z-0 rounded-2xl focus-visible:outline-3 focus-visible:outline-offset-[-4px] focus-visible:outline-[#123c2f]"
+                className="absolute inset-0 z-0 cursor-pointer rounded-2xl focus-visible:outline-3 focus-visible:outline-offset-[-4px] focus-visible:outline-[#123c2f]"
                 aria-label={
                   startsBooking
                     ? `สร้างรายการจอง ${room.room_code} วันที่ ${formatDisplayDate(planDate)}`
@@ -188,7 +188,7 @@ export function RoomPlanningGrid({
                       onClick={() =>
                         setSelectedPet({ detail: quickDetail, petId: pet.id })
                       }
-                      className="mr-1 mb-1 inline-flex min-h-8 items-center rounded-full bg-white/70 px-2.5 font-bold underline-offset-2 hover:bg-white hover:underline focus-visible:outline-2 focus-visible:outline-offset-2"
+                      className="mr-1 mb-1 inline-flex min-h-8 cursor-pointer items-center rounded-full bg-white/70 px-2.5 font-bold underline-offset-2 hover:bg-white hover:underline focus-visible:outline-2 focus-visible:outline-offset-2"
                       aria-label={`ดูข้อมูล ${pet.name}`}
                     >
                       {pet.name}
@@ -215,7 +215,7 @@ export function RoomPlanningGrid({
               <button
                 type="button"
                 onClick={() => setSelectedRoom(room)}
-                className="relative z-10 mt-2 min-h-8 rounded-lg bg-white/55 px-2.5 text-xs font-semibold hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2"
+                className="relative z-10 mt-2 min-h-8 cursor-pointer rounded-lg bg-white/55 px-2.5 text-xs font-semibold hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2"
               >
                 จัดการห้อง
               </button>

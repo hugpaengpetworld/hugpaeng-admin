@@ -171,7 +171,32 @@ npm run build:cloudflare
 npm run preview:cloudflare
 ```
 
-การ deploy ต้องตั้ง secrets ผ่าน Cloudflare/Wrangler ภายนอก source control แล้วจึงใช้ `npm run deploy:cloudflare` ยังไม่ทำ production deployment หรือผูกโดเมน เพราะต้องยืนยันกลยุทธ์ข้อมูลจริง, LINE production credentials, retention, backup/restore และ cutover sign-off ก่อน
+การ deploy ต้องตั้ง secrets ผ่าน Cloudflare/Wrangler ภายนอก source control แล้วจึงใช้ `npm run deploy:cloudflare` Production Worker ใช้ custom domain `admin.hug-paeng.com`; การ deploy ซ้ำต้องใช้คำสั่งที่ล็อก production target และยืนยันโดยตั้งใจเท่านั้น
+
+Production ใช้ Supabase project `dghipgebiioxphbbyvxp`, Cloudflare account `dd0c01bdf56fa7bba2e915d0522a9666`, Worker `bmp-booking-production` และโดเมน `https://admin.hug-paeng.com` เท่านั้น สร้างไฟล์ secret ที่ถูก ignore และตรวจ CLEAN_SEED แบบ read-only ด้วย:
+
+```powershell
+npm.cmd run env:production:configure
+npm.cmd run production:clean-audit
+```
+
+เก็บ LINE production credentials ผ่าน secure prompt โดยไม่แสดงค่าบนหน้าจอหรือ command history:
+
+```powershell
+npm.cmd run env:production:line
+```
+
+ห้ามคัดลอก `.env.production.local` เข้า Git หรือส่งค่าภายในผ่านแชต คำสั่ง deploy production จะหยุดทันทีถ้า target ไม่ตรงหรือ LINE production credentials ยังว่าง และต้องยืนยันโดยตั้งใจทุกครั้ง:
+
+```powershell
+npm.cmd run deploy:cloudflare:production -- -ConfirmProductionDeploy
+```
+
+หลังโดเมนใช้งานได้และ Supabase Auth URL Configuration ถูกตั้งค่าครบแล้ว จึงเชิญ OWNER แรกด้วยคำสั่งที่ล็อก production และอีเมลไว้โดยเฉพาะ:
+
+```powershell
+npm.cmd run owner:invite:production -- -ConfirmProductionInvite
+```
 
 สำหรับ environment staging ที่อนุมัติแล้ว ให้ใช้คำสั่งซึ่งล็อกเป้าหมายไว้กับ Worker และ Supabase CLEAN staging โดยเฉพาะ:
 

@@ -38,5 +38,36 @@
         "crons": ["* * * * *"],
       },
     },
+    "production": {
+      "name": "bmp-booking-production",
+      "workers_dev": false,
+      "preview_urls": false,
+      "routes": [
+        {
+          "pattern": "admin.hug-paeng.com",
+          "custom_domain": true,
+        },
+      ],
+      "vars": {
+        "APP_TIMEZONE": "Asia/Bangkok",
+        "APP_CURRENCY": "THB",
+        "DEFAULT_TENANT_SLUG": "baan-mhor-poy",
+      },
+      "secrets": {
+        "required": [
+          "NEXT_PUBLIC_SUPABASE_URL",
+          "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+          "NEXT_PUBLIC_APP_URL",
+          "SUPABASE_SERVICE_ROLE_KEY",
+          "LINE_CHANNEL_ACCESS_TOKEN",
+          "LINE_CHANNEL_SECRET",
+          "CRON_SHARED_SECRET",
+          "RATE_LIMIT_HASH_SECRET",
+        ],
+      },
+      "triggers": {
+        "crons": ["* * * * *"],
+      },
+    },
   },
 }

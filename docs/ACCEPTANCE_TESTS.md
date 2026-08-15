@@ -46,7 +46,10 @@
 - Room dropdown is same-species and period-valid; no separate assign button exists.
 - Dates display as `DD-MM-YYYY` on every relevant page.
 - Raw enums and raw errors are never shown.
+- Cat and dog room cards show the pointer cursor and open the correct primary action with one click, Enter, or Space; no double-click is required. An available card opens the create form with date, species, and room preselected.
+- The room-card create form searches the central registry by phone, owner name, pet name, or HN, accepts several pets from one owner, and submits existing customer/pet IDs without creating duplicate registry rows.
 - Only the room-card form shows `เช็คอินทันที`; the general back-office booking form continues to show the request/review workflow.
+- A registry-linked room booking clearly uses the request-then-room-card-check-in path while direct registry check-in remains outside the Version 1 atomic database function; the UI does not expose an action that will be rejected.
 - Clicking an occupied cat/dog room shows the stored owner/contact and pet facts. Its `เช็คเอาท์` action uses the same server-authorized atomic checkout, displays the charge/group-deposit summary, requires early confirmation when applicable, issues a receipt only for the final active room in the group, and returns the room to the selected room page as `CLEANING`.
 - Room checkout accepts multiple dropdown charge rows from the 12-item approved catalog, calculates every entered THB amount in integer satang, rejects incomplete/unknown/non-positive rows, and requires a description for `อื่น ๆ`; receipt items retain the selected structured category and readable Thai item name.
 - Dynamic PromptPay QR contains the exact server-recalculated positive final amount after group charges and the one group deposit. Changing a charge invalidates the prior quote.
@@ -60,6 +63,8 @@
 - Staff/doctor/owner can create; public customer cannot.
 - Other species reveals required custom field; sex accepts male/female only.
 - Age and vaccination appear in create/detail/list as specified.
+- Calendar day cards and appointment rows show the pointer cursor and open with one click, Enter, or Space; clicking the day opens the create form with the date preselected.
+- The sterilization create form searches by phone, owner name, pet name, or HN and reuses one selected existing customer/pet identity without duplicating the registry row.
 
 ## Receipts
 
@@ -83,6 +88,7 @@
 - Expired/revoked support grant fails immediately.
 - Support actions contain grant ID in audit.
 - LINE invalid signatures are rejected.
+- Inline patient-registry search requires the effective customer/pet read capabilities, stays tenant-scoped at server/RLS/RPC layers, and does not place customer search terms in the URL.
 
 ## Responsive/accessibility
 

@@ -142,13 +142,13 @@ export function SterilizationCalendarGrid({
               return (
                 <article
                   key={date}
-                  className={`relative min-h-44 overflow-hidden rounded-2xl border p-3 transition hover:-translate-y-0.5 hover:shadow-md ${toneClass}`}
+                  className={`relative min-h-44 cursor-pointer overflow-hidden rounded-2xl border p-3 transition hover:-translate-y-0.5 hover:shadow-md ${toneClass}`}
                 >
                   <button
                     type="button"
                     onClick={() => setSelectedDate(date)}
                     aria-label={`สร้างรายการรับจองทำหมันวันที่ ${formatDisplayDate(date)}`}
-                    className="absolute inset-0 z-0 rounded-2xl focus-visible:outline-3 focus-visible:outline-offset-[-4px] focus-visible:outline-[#123c2f]"
+                    className="absolute inset-0 z-0 cursor-pointer rounded-2xl focus-visible:outline-3 focus-visible:outline-offset-[-4px] focus-visible:outline-[#123c2f]"
                   />
                   <div className="pointer-events-none relative z-[1] flex items-start justify-between gap-2">
                     <span className="text-xl font-black">
@@ -173,7 +173,7 @@ export function SterilizationCalendarGrid({
                         key={row.id}
                         type="button"
                         onClick={() => setSelectedAppointment(row)}
-                        className="block w-full truncate rounded-lg bg-white/85 px-2 py-1.5 text-left text-xs font-semibold shadow-sm hover:bg-white focus-visible:outline-2 focus-visible:outline-[#123c2f]"
+                        className="block w-full cursor-pointer truncate rounded-lg bg-white/85 px-2 py-1.5 text-left text-xs font-semibold shadow-sm hover:bg-white focus-visible:outline-2 focus-visible:outline-[#123c2f]"
                         title={`${row.appointmentTime} ${getSterilizationPetLabel(row)}`}
                         aria-label={`ดูข้อมูล ${row.petName} เจ้าของ ${row.customerName}`}
                       >

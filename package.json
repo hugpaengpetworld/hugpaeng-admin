@@ -13,6 +13,10 @@
     "preview:cloudflare": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "deploy:cloudflare": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
     "deploy:cloudflare:staging": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/deploy-cloudflare-staging.ps1",
+    "deploy:cloudflare:production": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/deploy-cloudflare-production.ps1",
+    "env:production:configure": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/configure-production-env.ps1 -FromSupabaseCli",
+    "env:production:line": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/configure-production-line.ps1",
+    "production:clean-audit": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/audit-clean-production.ps1",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint . --max-warnings=0",
@@ -30,6 +34,7 @@
     "db:reset": "supabase db reset",
     "db:test": "supabase test db",
     "owner:invite": "tsx scripts/invite-owner.ts",
+    "owner:invite:production": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/invite-production-owner.ps1",
     "owner:set-password": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/set-owner-password.ps1",
     "platform:assign": "tsx scripts/assign-platform-role.ts",
     "migration:rehearse": "tsx scripts/legacy-migration-rehearsal.ts"

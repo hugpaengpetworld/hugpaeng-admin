@@ -67,12 +67,12 @@ export default async function AdminHomePage({
               <TopNavigation permissions={context.permissions} />
             </nav>
 
-            <details className="group relative xl:hidden">
+            <details className="group relative z-30 xl:hidden">
               <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-xl border border-[#76573b]/15 bg-white/70 px-3 text-sm font-bold text-[#23523e] hover:bg-white focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#2d6a50]">
                 <Icon name="menu" className="size-5" />
                 <span className="hidden sm:inline">เมนูระบบ</span>
               </summary>
-              <div className="absolute top-[calc(100%+0.65rem)] right-0 w-[min(88vw,340px)] rounded-2xl border border-[#76573b]/15 bg-[#fffaf1] p-3 shadow-2xl">
+              <div className="absolute top-[calc(100%+0.65rem)] left-0 w-[calc(100vw-2rem)] max-w-[340px] rounded-2xl border border-[#76573b]/15 bg-[#fffaf1] p-3 shadow-2xl sm:w-[340px]">
                 <div className="grid gap-1">
                   <MobileNavigation permissions={context.permissions} />
                 </div>

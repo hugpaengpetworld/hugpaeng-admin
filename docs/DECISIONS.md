@@ -201,3 +201,26 @@ Add future decisions with date, decision, superseded behavior, and reason. Never
 - Decision: every pet receives a separate immutable tenant-scoped `HN-######`; HNs are not shared and are never reused.
 - Decision: Version 1 links registry identities to boarding and sterilization. Full EMR, IDEXX/device integration, IPD, treatment, inventory, POS/payroll, referrals, AI SOAP, and paperless clinical workflows remain future releases.
 - Reason: launch the reliable booking/sterilization product without blocking Version 1 on the full veterinary platform, while establishing identity and authorization foundations that future modules can safely reuse.
+
+## 2026-08-15 — Version 1 production target and operating choices
+
+- Decision: Version 1 production uses the dedicated Supabase project `bmp-booking-production` (`dghipgebiioxphbbyvxp`) on the Free plan temporarily, Cloudflare account `dd0c01bdf56fa7bba2e915d0522a9666`, Worker `bmp-booking-production`, and canonical application URL `https://admin.hug-paeng.com`.
+- Decision: LINE notifications are enabled for launch only after production channel credentials are stored as server-side Cloudflare secrets. No LINE secret or access token may be written to source control or browser code.
+- Decision: OWNER and ADMIN receive the complete financial capability set. Every other role must receive each financial capability explicitly per user; role labels or hidden buttons are not authorization.
+- Decision: operational records remain available for six months. Any archive, deletion, or backup lifecycle after that boundary requires a separately reviewed retention implementation that preserves medical, receipt, audit, and legal obligations; this decision does not authorize automatic destructive deletion.
+- Reason: fix one auditable production target and the launch policy boundaries without coupling the release to a paid Supabase upgrade or implementing unsafe retention deletion prematurely.
+
+## 2026-08-15 — Production support-access operating policy
+
+- Decision: production support access is disabled by default. No production `SUPPORT_AGENT` account is provisioned until a genuine support incident requires it.
+- Decision: a temporary grant requires explicit tenant OWNER approval, a reason and ticket/reference, the minimum read-only allowlisted scopes needed for the incident, and a visible start and expiry. The operating default is at most two hours; PostgreSQL continues to enforce the absolute maximum of 24 hours.
+- Decision: support access never grants tenant writes, financial mutations or refunds, user/role administration, secret management, or unrestricted tenant browsing. Every grant, use, expiry, revocation, and associated read is tied to the grant in the audit trail, and the OWNER may revoke it immediately.
+- Reason: permit time-bounded troubleshooting without creating permanent privileged access to customer, patient, booking, or financial data.
+
+## 2026-08-15 — Inline registry reuse in back-office creation
+
+- Decision: the room-planning and sterilization create forms begin with the existing tenant-scoped patient-registry search. Staff can search by phone, owner name, pet name, or HN; boarding can select several active pets belonging to one owner, while sterilization selects one pet.
+- Decision: selecting a result reuses the existing customer and pet IDs. Search remains a capability-protected server action backed by PostgreSQL tenant enforcement and does not place personal search terms in the URL.
+- Decision: actionable room cards, sterilization day cards, and appointment rows display the pointer cursor and open with one click, Enter, or Space. Double-click is not part of any workflow.
+- Decision: the existing Version 1 direct-check-in database function does not yet accept registry-linked identities. A registry-linked booking therefore follows create request → room-card check-in, and the UI hides the unsupported direct action. Newly entered customers retain the existing atomic direct-check-in flow.
+- Reason: reduce duplicate customer/pet entry immediately without bypassing tenant authorization or weakening the current transactional booking and check-in guarantees.

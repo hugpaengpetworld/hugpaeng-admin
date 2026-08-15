@@ -87,6 +87,7 @@ The first two tabs include:
 - Header controls: previous day, today, selected date, next day.
 - Legend with color, text, and icon.
 - Cards show room code, operational/booking status, species icon, pet name badge, and booking code where relevant.
+- Every actionable room card shows the pointer cursor on hover and opens its primary action with one click, Enter, or Space. Double-click must never be required.
 - Card actions:
   - available: clicking anywhere in the card opens the back-office booking form with date, species, and room preselected;
   - held/pending: view request;
@@ -95,7 +96,9 @@ The first two tabs include:
   - cleaning/maintenance/disabled: view/change operational state if authorized.
 - A pet-name badge inside a booked room is a separate keyboard-accessible action. It opens a quick-detail modal with the booking, owner, phone, recorded pet facts, stay dates, payment state, and notes without triggering the room-card action.
 - Optional facts that were not collected for a boarding pet display `ยังไม่ได้ระบุ`; the UI must not infer sex, breed, or health information.
+- The room-card booking form begins with the central patient-registry search. Staff can search by phone, owner name, pet name, or HN, choose several active pets belonging to one customer, and reuse the existing customer/pet IDs instead of creating duplicates. New-customer entry remains available when no match is found.
 - The room-card booking form shows an editable THB nightly-rate field for each room, prefilled from the one-/two-animal standard. It has adjacent `สร้างคำขอจอง` and `เช็คอินทันที` actions. The direct action is available only in the room-card context; the general booking-list form keeps the review path.
+- In the current Version 1 transaction boundary, a registry-linked room booking is created as a request first and is then checked in from the room card. `เช็คอินทันที` remains available for a newly entered customer; it must not be shown when the selected registry path is not supported atomically by the database function.
 - When direct check-in uses LINE, show the single booking-group deposit input and explain the 500 THB minimum. Do not present or calculate a deposit per room.
 - A held/pending or confirmed room card provides `เช็คอิน` beside the unchanged `ยกเลิก` and `บันทึกสถานะ` controls. The confirmation displays owner, pet, channel, date, room, and the actual group deposit received. PostgreSQL must approve the eligible pending unit and open the physical stay atomically; LINE still requires the single 500 THB booking-group deposit.
 - The occupied-room modal shows the recorded owner/contact, pet, payment, dates, and notes before its `เช็คเอาท์` action. Checkout opens the normal charge/settlement confirmation and does not bypass early-checkout confirmation, final-group receipt rules, authorization, or the room-to-cleaning transition.
@@ -117,7 +120,9 @@ Status colors:
 - Exactly four: red/full.
 - More than four: purple/overbooked.
 - Each animal row is clickable and uses the requested prefix/name/sex convention.
+- Every actionable day card and animal row shows the pointer cursor. One click opens the create form or the animal detail respectively; double-click must never be required.
 - Clicking the remaining area of a calendar day opens the back-office sterilization form with that date preselected. Clicking an animal row opens a quick-detail modal instead and shows the recorded owner, phone, channel, pet identity, species, sex, breed, weight, age, vaccination, appointment state, and notes.
+- The sterilization create form begins with the central patient-registry search. Staff can search by phone, owner name, pet name, or HN, select one existing pet, and reuse the existing customer/pet IDs; the form still permits new-customer entry when no match exists.
 - Overbook action displays explicit warning and records acknowledgement.
 
 ## Forms and dates
