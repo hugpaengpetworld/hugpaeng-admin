@@ -32,7 +32,7 @@ export async function listTenantUsers(): Promise<readonly TenantUser[]> {
     await Promise.all([
       supabase
         .from("tenant_memberships")
-        .select("id, user_id, role, status")
+        .select("id, user_id, display_name, role, status")
         .eq("tenant_id", context.tenantId)
         .order("created_at"),
       supabase
@@ -55,10 +55,25 @@ export async function listTenantUsers(): Promise<readonly TenantUser[]> {
   const rows = (data ?? []) as {
     id: string;
     user_id: string;
+    display_name: string | null;
     role: TenantUser["role"];
     status: TenantUser["status"];
   }[];
   const admin = createSupabaseAdminClient();
+  const pendingUserIds = new Set(rows.map((row) => row.user_id));
+  const emailByUserId = new Map<string, string>();
+  const perPage = 200;
+  for (let page = 1; pendingUserIds.size > 0; page += 1) {
+    const { data: authUsers, error: authUsersError } =
+      await admin.auth.admin.listUsers({ page, perPage });
+    if (authUsersError) throw new Error("TENANT_USERS_UNAVAILABLE");
+    for (const user of authUsers.users) {
+      if (!pendingUserIds.has(user.id)) continue;
+      if (user.email) emailByUserId.set(user.id, user.email);
+      pendingUserIds.delete(user.id);
+    }
+    if (authUsers.users.length < perPage) break;
+  }
   const defaults = new Map<ClinicRole, TenantPermission[]>();
   for (const row of defaultsResult.data ?? []) {
     const role = row.role as ClinicRole;
@@ -73,32 +88,18 @@ export async function listTenantUsers(): Promise<readonly TenantUser[]> {
     current.push(row.permission_code as TenantPermission);
     overrides.set(row.membership_id, current);
   }
-  return Promise.all(
-    rows.map(async (row) => {
-      const [profileResult, userResult] = await Promise.all([
-        supabase
-          .from("profiles")
-          .select("display_name")
-          .eq("user_id", row.user_id)
-          .single(),
-        admin.auth.admin.getUserById(row.user_id),
-      ]);
-      return {
-        membershipId: row.id,
-        userId: row.user_id,
-        displayName:
-          (profileResult.data as { display_name?: string } | null)
-            ?.display_name ?? "ผู้ใช้งาน",
-        email: userResult.data.user?.email ?? null,
-        role: row.role,
-        status: row.status,
-        allowedPermissions:
-          row.role === "OWNER" || row.role === "ADMIN"
-            ? context.permissions
-            : (overrides.get(row.id) ?? defaults.get(row.role) ?? []),
-      };
-    }),
-  );
+  return rows.map((row) => ({
+    membershipId: row.id,
+    userId: row.user_id,
+    displayName: row.display_name ?? "ผู้ใช้งาน",
+    email: emailByUserId.get(row.user_id) ?? null,
+    role: row.role,
+    status: row.status,
+    allowedPermissions:
+      row.role === "OWNER" || row.role === "ADMIN"
+        ? context.permissions
+        : (overrides.get(row.id) ?? defaults.get(row.role) ?? []),
+  }));
 }
 
 export async function listPermissionOptions(): Promise<

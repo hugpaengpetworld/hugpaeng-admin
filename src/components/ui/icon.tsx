@@ -18,7 +18,9 @@ export type IconName =
   | "sparkle"
   | "pos"
   | "employee"
-  | "stethoscope";
+  | "stethoscope"
+  | "edit"
+  | "trash";
 
 const paths: Record<IconName, React.ReactNode> = {
   dashboard: (
@@ -59,6 +61,10 @@ const paths: Record<IconName, React.ReactNode> = {
   stethoscope: (
     <path d="M5 3v5a5 5 0 0 0 10 0V3m-7 0v3m4-3v3m3 8v2a4 4 0 0 0 8 0v-1m-2-2a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z" />
   ),
+  edit: (
+    <path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4L16.5 3.5Z" />
+  ),
+  trash: <path d="M4 7h16M10 11v6m4-6v6M9 7V4h6v3m3 0-1 14H7L6 7" />,
 };
 
 export function Icon({

@@ -13,6 +13,7 @@ describeWithDatabase("patient registry and tenant capabilities", () => {
   const ownerId = randomUUID();
   const adminId = randomUUID();
   const restrictedStaffId = randomUUID();
+  const managedEmployeeId = randomUUID();
 
   beforeAll(async () => {
     await sql`
@@ -20,7 +21,8 @@ describeWithDatabase("patient registry and tenant capabilities", () => {
       values
         (${ownerId}, ${`registry-owner-${ownerId}@example.invalid`}),
         (${adminId}, ${`registry-admin-${adminId}@example.invalid`}),
-        (${restrictedStaffId}, ${`registry-staff-${restrictedStaffId}@example.invalid`})
+        (${restrictedStaffId}, ${`registry-staff-${restrictedStaffId}@example.invalid`}),
+        (${managedEmployeeId}, ${`registry-managed-${managedEmployeeId}@example.invalid`})
     `;
     await sql`
       insert into public.tenants (id, slug, thai_name, english_name)
@@ -33,7 +35,8 @@ describeWithDatabase("patient registry and tenant capabilities", () => {
       values
         (${ownerId}, 'Registry Owner'),
         (${adminId}, 'Registry Admin'),
-        (${restrictedStaffId}, 'Restricted Staff')
+        (${restrictedStaffId}, 'Restricted Staff'),
+        (${managedEmployeeId}, 'Managed Employee')
     `;
     await sql`
       insert into public.tenant_memberships (
@@ -41,7 +44,8 @@ describeWithDatabase("patient registry and tenant capabilities", () => {
       ) values
         (${tenantId}, ${ownerId}, 'OWNER', 'ACTIVE', now()),
         (${tenantId}, ${adminId}, 'ADMIN', 'ACTIVE', now()),
-        (${tenantId}, ${restrictedStaffId}, 'STAFF', 'ACTIVE', now())
+        (${tenantId}, ${restrictedStaffId}, 'STAFF', 'ACTIVE', now()),
+        (${tenantId}, ${managedEmployeeId}, 'STAFF', 'ACTIVE', now())
     `;
     await sql`
       insert into public.tenant_membership_permission_overrides (
@@ -59,7 +63,10 @@ describeWithDatabase("patient registry and tenant capabilities", () => {
   afterAll(async () => {
     await sql`delete from public.audit_logs where tenant_id in (${tenantId}, ${otherTenantId})`;
     await sql`delete from public.tenants where id in (${tenantId}, ${otherTenantId})`;
-    await sql`delete from auth.users where id in (${ownerId}, ${adminId}, ${restrictedStaffId})`;
+    await sql`
+      delete from auth.users
+      where id in (${ownerId}, ${adminId}, ${restrictedStaffId}, ${managedEmployeeId})
+    `;
     await sql.end();
   });
 
@@ -289,5 +296,81 @@ describeWithDatabase("patient registry and tenant capabilities", () => {
         `,
       ),
     ).rejects.toThrow("UNKNOWN_PERMISSION");
+  });
+
+  it("updates and revokes a tenant employee without deleting identity history", async () => {
+    const [employeeMembership] = await sql<{ id: string }[]>`
+      select id from public.tenant_memberships
+      where tenant_id = ${tenantId} and user_id = ${managedEmployeeId}
+    `;
+
+    await asUser(
+      adminId,
+      (transaction) => transaction`
+        select public.manage_tenant_member_profile_with_permissions(
+          ${employeeMembership!.id}, 'พนักงานหน้าร้าน', 'COUNTER', 'SUSPENDED',
+          array['CUSTOMERS_READ', 'PETS_READ']::text[]
+        )
+      `,
+    );
+
+    const [updated] = await sql<
+      {
+        display_name: string;
+        role: string;
+        status: string;
+        allowed_permissions: string[];
+      }[]
+    >`
+      select
+        membership.display_name,
+        membership.role,
+        membership.status,
+        coalesce(
+          array_agg(override.permission_code order by override.permission_code)
+            filter (where override.is_allowed),
+          array[]::text[]
+        ) as allowed_permissions
+      from public.tenant_memberships membership
+      left join public.tenant_membership_permission_overrides override
+        on override.membership_id = membership.id
+      where membership.id = ${employeeMembership!.id}
+      group by membership.id
+    `;
+    expect(updated).toEqual({
+      display_name: "พนักงานหน้าร้าน",
+      role: "COUNTER",
+      status: "SUSPENDED",
+      allowed_permissions: ["CUSTOMERS_READ", "PETS_READ"],
+    });
+
+    await asUser(
+      ownerId,
+      (transaction) => transaction`
+        select public.revoke_tenant_membership(${employeeMembership!.id})
+      `,
+    );
+
+    const [preserved] = await sql<
+      { status: string; auth_exists: boolean; profile_exists: boolean }[]
+    >`
+      select
+        membership.status,
+        exists(
+          select 1 from auth.users auth_user
+          where auth_user.id = membership.user_id
+        ) as auth_exists,
+        exists(
+          select 1 from public.profiles profile
+          where profile.user_id = membership.user_id
+        ) as profile_exists
+      from public.tenant_memberships membership
+      where membership.id = ${employeeMembership!.id}
+    `;
+    expect(preserved).toEqual({
+      status: "REVOKED",
+      auth_exists: true,
+      profile_exists: true,
+    });
   });
 });

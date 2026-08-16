@@ -20,6 +20,7 @@ const inviteSchema = z.object({
 });
 const membershipSchema = z.object({
   membershipId: z.uuid(),
+  displayName: z.string().trim().min(1).max(150),
   role: z.enum(clinicRoles),
   status: z.enum(["ACTIVE", "SUSPENDED", "REVOKED"]),
   permissions: z.array(z.enum(tenantPermissions)),
@@ -41,7 +42,12 @@ export async function inviteTenantUserAction(
     redirect("/admin/users?error=ADMIN_CANNOT_MANAGE_OWNER");
   }
   const admin = createSupabaseAdminClient();
-  const existingUserIds = await findUserIdsByEmail(admin, input.data.email);
+  let existingUserIds: string[];
+  try {
+    existingUserIds = await findUserIdsByEmail(admin, input.data.email);
+  } catch {
+    redirect("/admin/users?error=AUTH_USER_LOOKUP_FAILED");
+  }
   if (existingUserIds.length > 0) {
     const { data: existingMembership } = await admin
       .from("tenant_memberships")
@@ -100,6 +106,7 @@ export async function manageTenantMembershipAction(
   requireUserManager(context);
   const input = membershipSchema.safeParse({
     membershipId: formData.get("membershipId"),
+    displayName: formData.get("displayName"),
     role: formData.get("role"),
     status: formData.get("status"),
     permissions: formData.getAll("permissions"),
@@ -107,9 +114,10 @@ export async function manageTenantMembershipAction(
   if (!input.success) redirect("/admin/users?error=VALIDATION_ERROR");
   const supabase = await createSupabaseServerClient();
   const { error } = await supabase.rpc(
-    "manage_tenant_membership_with_permissions",
+    "manage_tenant_member_profile_with_permissions",
     {
       p_membership_id: input.data.membershipId,
+      p_display_name: input.data.displayName,
       p_role: input.data.role,
       p_status: input.data.status,
       p_allowed_permissions: input.data.permissions,
@@ -122,13 +130,50 @@ export async function manageTenantMembershipAction(
       "FORBIDDEN",
       "ADMIN_CANNOT_MANAGE_OWNER",
       "UNKNOWN_PERMISSION",
+      "INVALID_DISPLAY_NAME",
+      "NOT_FOUND",
     ] as const;
     const code =
       codes.find((item) => error.message.includes(item)) ?? "UNKNOWN";
-    redirect(`/admin/users?error=${code}`);
+    redirect(`/admin/users?view=manage&error=${code}`);
   }
   revalidatePath("/admin/users");
-  redirect("/admin/users?success=updated");
+  redirect("/admin/users?view=manage&success=updated");
+}
+
+const revokeMembershipSchema = z.object({
+  membershipId: z.uuid(),
+});
+
+export async function revokeTenantMembershipAction(
+  formData: FormData,
+): Promise<void> {
+  const context = await requireTenantContext();
+  requireUserManager(context);
+  const input = revokeMembershipSchema.safeParse({
+    membershipId: formData.get("membershipId"),
+  });
+  if (!input.success) {
+    redirect("/admin/users?view=manage&error=VALIDATION_ERROR");
+  }
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("revoke_tenant_membership", {
+    p_membership_id: input.data.membershipId,
+  });
+  if (error) {
+    const codes = [
+      "CANNOT_CHANGE_OWN_MEMBERSHIP",
+      "LAST_OWNER_REQUIRED",
+      "FORBIDDEN",
+      "ADMIN_CANNOT_MANAGE_OWNER",
+      "NOT_FOUND",
+    ] as const;
+    const code =
+      codes.find((item) => error.message.includes(item)) ?? "UNKNOWN";
+    redirect(`/admin/users?view=manage&error=${code}`);
+  }
+  revalidatePath("/admin/users");
+  redirect("/admin/users?view=manage&success=revoked");
 }
 
 async function findUserIdsByEmail(

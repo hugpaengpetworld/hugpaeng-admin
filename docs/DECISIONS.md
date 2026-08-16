@@ -239,3 +239,11 @@ Add future decisions with date, decision, superseded behavior, and reason. Never
 - Decision: wildcard characters typed by a user are treated as ordinary name characters rather than SQL pattern operators.
 - Supersedes: limiting owner and pet name lookup to prefix-only matches.
 - Reason: a query such as `ปอย` must find `หมอปอย`, while exact and prefix matches still remain easier to find at the top and unrelated names are excluded.
+
+## 2026-08-16 — Tenant-scoped employee management and safe removal
+
+- Decision: `/admin/users` separates `เพิ่มผู้ใช้งาน` from `จัดการพนักงาน`. The invitation view contains only the invite form, while the management view uses compact employee cards and an explicit edit dialog for tenant-scoped display name, role, status, and per-user capabilities.
+- Decision: the display name shown in employee management belongs to the tenant membership. Editing it does not overwrite the same person's shared profile identity in another tenant.
+- Decision: the trash action performs an audited membership revocation instead of deleting the Supabase Auth identity, profile, booking history, financial references, or audit trail. A revoked membership cannot enter the tenant but remains available for historical attribution.
+- Decision: ADMIN may manage non-owner memberships but cannot edit or revoke OWNER. No user may change or revoke their own membership from this screen, and the database remains authoritative for these rules.
+- Reason: keep a growing staff list readable and manageable without weakening multi-tenant isolation or destroying operational history.
